@@ -30,3 +30,23 @@ test('batched updates', t => {
 
   t.deepEqual(values, [3, 11]);
 });
+
+test('detect self dependency', t => {
+  const a = observable.box(1);
+
+  t.throws(() => {
+    autorun(() => {
+      a.set(a.get() + 1);
+    });
+  }, { instanceOf: Error, message: 'Self-dependency detected' });
+});
+
+test('detect circular dependencies', t => {
+  const a = observable.box(1);
+  const b = observable.box(1);
+
+  t.throws(() => {
+    autorun(() => a.set(b.get() + 1));
+    autorun(() => b.set(a.get() + 1));
+  }, { instanceOf: Error, message: 'Circular dependency detected' });
+});

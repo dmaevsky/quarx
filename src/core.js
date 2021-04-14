@@ -54,7 +54,7 @@ export function createAtom(name, onBecomeObserved) {
 
 export function autorun(computation) {
   let dependencies = new Set();
-  let seqNo = 0;
+  let seqNo = 0, isRunning = false;
 
   const link = dep => dependencies.add(dep);
 
@@ -78,6 +78,11 @@ export function autorun(computation) {
   }
 
   function run() {
+    if (isRunning) {
+      throw new Error('Self-dependency detected');
+    }
+    isRunning = true;
+
     const previousDeps = dependencies;
     dependencies = new Set();
 
@@ -90,8 +95,9 @@ export function autorun(computation) {
       if (!dependencies.has(dep)) dep.unlink();
     }
 
-    seqNo = sequenceNumber;
     invalidated.delete(run);
+    seqNo = sequenceNumber;
+    isRunning = false;
   }
 
   function dispose() {
