@@ -1,0 +1,42 @@
+{
+  "devDependencies": {
+    "ava": "^3.15.0",
+    "esm": "^3.2.25"
+  },
+  "name": "quarx",
+  "version": "1.0.0",
+  "description": "Simple dependency graph engine, MobX inspired",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "dependencies": {},
+  "scripts": {
+    "test": "ava -v"
+  },
+  "ava": {
+    "files": [
+      "**/*.spec.js"
+    ],
+    "require": [
+      "esm"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/dmaevsky/quarx.git"
+  },
+  "keywords": [
+    "Reactive",
+    "dependency",
+    "graph",
+    "engine",
+    "MobX"
+  ],
+  "author": "Dmitry Maevsky",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/dmaevsky/quarx/issues"
+  },
+  "homepage": "https://github.com/dmaevsky/quarx#readme"
+}
