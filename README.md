@@ -67,6 +67,8 @@ Please refer to the [API reference]((https://github.com/dmaevsky/quarx/blob/mast
 
 Computed observables are lazy: if they don't have any observers they will unsubscribe from all their upstream dependencies.
 
+All the observables' and atoms' names are for debug purposes only: they do not affect the execution logic.
+
 ## Future development
 At least an `observable.map` would likely be shipped as part of Quarx. The goal is however to keep the core as tiny as possible.
 
