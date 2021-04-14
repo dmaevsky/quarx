@@ -10,6 +10,33 @@ const computedLogged = log => (name, computation) => computed(() => {
   return result;
 }, { name });
 
+test('only recomputing hydrated computed', t => {
+  const log = [];
+  const calc = computedLogged(log);
+
+  const boxA = observable.box(false, { name: 'boxA' });
+  const boxB = observable.box(5, { name: 'boxB' });
+  const boxC = observable.box(6, { name: 'boxC' });
+
+  const B = calc('B', () => boxB.get() * 10);
+  const C = calc('C', () => boxC.get() * 10);
+
+  autorun(() => {
+    log.push(`autorun: ${boxA.get() ? B.get() : C.get()}`);
+  });
+
+  boxB.set(7);
+  boxC.set(8);
+
+  log.push('===');
+  boxA.set(true);
+
+  boxB.set(9);
+  boxC.set(10);
+
+  t.snapshot(log);
+});
+
 test('discovering a new dependency path, only recalculating what is needed along it', t => {
   const log = [];
   const calc = computedLogged(log);
@@ -27,21 +54,5 @@ test('discovering a new dependency path, only recalculating what is needed along
   log.push('===');
   A.set(1);
 
-  t.deepEqual(log, [
-    'computing B',
-    'B = 555',
-    'autorun: B = 555',
-    'computing D',
-    'computing C',
-    'C = 1',
-    'D = 42',
-    'autorun: D = 42',
-    '===',
-    'computing B',
-    'computing C',
-    'C = 1',
-    'B = 42',
-    'autorun: B = 42',
-    'autorun: D = 42'
-  ]);
+  t.snapshot(log);
 });

@@ -43,6 +43,7 @@ export function createAtom(name, onBecomeObserved) {
     },
 
     reportChanged() {
+      // console.debug(`${name} changed`);
       ({ actualize } = stack[stack.length - 1] || {});
       for (let invalidate of observers.keys()) invalidate();
 
@@ -58,7 +59,7 @@ export function autorun(computation) {
   const link = dep => dependencies.add(dep);
 
   function invalidate() {
-    if (seqNo === sequenceNumber) {
+    if (stack.length && seqNo === sequenceNumber) {
       throw new Error('Circular dependency detected');
     }
     seqNo = 0;
@@ -110,11 +111,15 @@ function collectUnobserved() {
 
 function hydrate() {
   ++sequenceNumber;
+  // console.debug(`Hydration ${sequenceNumber}`);
+
   ++batchDepth;
 
   for (let run of invalidated) run();
   collectUnobserved();
+
   --batchDepth;
+  // console.debug(`Hydration ${sequenceNumber} END`);
 }
 
 export function batch(t) {
