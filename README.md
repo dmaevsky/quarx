@@ -9,6 +9,31 @@ In less than 200 lines of code and zero dependencies Quarx supports most of MobX
 
 Unlike MobX, Quarx does not support circular computations even if they might eventually settle. It is a deliberate design decision that allowed for dramatic algorithm simplification, as well as enabled nested reactions execution. MobX on the other hand always delays the execution of nested reactions until the parent reaction exits: a leaky abstraction IMO.
 
+## Usage example
+```js
+import { autorun, computed, observable, batch } from 'quarx';
+
+const a = observable.box(1);
+const b = observable.box(2);
+const a_plus_b = computed(() => a.get() + b.get());
+
+autorun(() => console.log(`a + b = ${a_plus_b.get()}`));
+
+batch(() => {
+  a.set(5);
+  b.set(6);
+});
+
+batch(() => {
+  a.set(4);
+  b.set(7);
+});
+
+// Prints
+// a + b = 3
+// a + b = 11
+```
+
 ## Low-level concepts
 There are 2 core primitive abstractions in Quarx: *computations* and *atoms*.
 
@@ -59,7 +84,7 @@ Using the primitives defined in the previous section one can construct observabl
 
   export function computed<T>(computation: () => T, options?: ObservableOptions<T>): Observable<T>;
 ```
-Please refer to the [API reference]((https://github.com/dmaevsky/quarx/blob/master/index.d.ts)) for more detail.
+Please refer to the [API reference](https://github.com/dmaevsky/quarx/blob/master/index.d.ts) for more detail.
 
 *Box* observables are the upstream leaves of the computations DAG. `aBox.get()` reports the box observed to the calling computation, and `aBox.set(value)` will report it changed if the `value` is different from the current one in the sense of the `equal` option (`===` by default).
 
