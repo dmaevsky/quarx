@@ -17,21 +17,27 @@ const a = observable.box(1);
 const b = observable.box(2);
 const a_plus_b = computed(() => a.get() + b.get());
 
+console.log('Initial calculation');
 autorun(() => console.log(`a + b = ${a_plus_b.get()}`));
 
+console.log('First update');
 batch(() => {
   a.set(5);
   b.set(6);
 });
 
+console.log('Second update');
 batch(() => {
   a.set(4);
   b.set(7);
 });
 
-// Prints
+// *** Prints ***
+// Initial calculation
 // a + b = 3
+// First update
 // a + b = 11
+// Second update
 ```
 
 ## Low-level concepts
