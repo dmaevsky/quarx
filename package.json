@@ -4,7 +4,7 @@
     "esm": "^3.2.25"
   },
   "name": "quarx",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Simple dependency graph engine, MobX inspired",
   "main": "index.js",
   "module": "index.js",
@@ -14,11 +14,13 @@
   },
   "dependencies": {},
   "scripts": {
-    "test": "ava -v"
+    "test": "ava -v",
+    "perf": "ava -v --config test.perf.config.js --node-arguments='--expose-gc'"
   },
   "ava": {
     "files": [
-      "**/*.spec.js"
+      "**/*.spec.js",
+      "!tests/perf.spec.js"
     ],
     "require": [
       "esm"

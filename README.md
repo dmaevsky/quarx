@@ -7,7 +7,11 @@ In less than 200 lines of code and zero dependencies Quarx supports most of MobX
 - `computed`, `observable.box` are built on top of those primitives
 - all of the above behave the same way as their MobX equivalents
 
-Unlike MobX, Quarx does not support circular computations even if they might eventually settle. It is a deliberate design decision that allowed for dramatic algorithm simplification, as well as enabled nested reactions execution. MobX on the other hand always delays the execution of nested reactions until the parent reaction exits: a leaky abstraction IMO.
+Unlike MobX, Quarx does not support circular computations even if they might eventually settle. This deliberate design decision allowed for dramatic algorithm simplification while circular calculation graphs do little to promote code clarity.
+
+Another difference with MobX, and the primary reason Quarx saw the light of day is that Quarx **always** runs the computation immediately and synchronously when `autorun` is called, while MobX always delays the execution of nested reactions until the parent reaction exits.
+
+With greedy execution, one can create new observed atoms on the fly (from within a reaction), paired with an `autorun` that should synchronously hydrate the atom at creation. This is by the way exactly how `computed` is implemented in Quarx.
 
 ## Usage example
 ```js
@@ -92,7 +96,7 @@ Using the primitives defined in the previous section one can construct observabl
 ```
 Please refer to the [API reference](https://github.com/dmaevsky/quarx/blob/master/index.d.ts) for more detail.
 
-*Box* observables are the upstream leaves of the computations DAG. `aBox.get()` reports the box observed to the calling computation, and `aBox.set(value)` will report it changed if the `value` is different from the current one in the sense of the `equal` option (`===` by default).
+*Box* observables are the upstream leaves of the computations DAG. `aBox.get()` reports the box observed to the calling computation, and `aBox.set(value)` will report it changed if the `value` is different from the current one in the sense of the `equal` option (`===` by default). A *Box* in Quarx is never trying to make its content deeply observable like MobX. It represents a *single* observable value.
 
 *Computed* observables are the intermediate nodes of the DAG representing the *reactive derivations*. `aComputed.get()` returns the result of the computation. If the computation threw an error, the `computed` will store it and re-throw on `get()`. Only if the computation result is different from the previously computed one in the sense of the `equal` option (`===` by default), the change will be reported downstream.
 
@@ -100,15 +104,13 @@ Computed observables are lazy: if they don't have any observers they will unsubs
 
 All the observables' and atoms' names are for debug purposes only: they do not affect the execution logic.
 
-## Future development
-At least an `observable.map` would likely be shipped as part of Quarx. The goal is however to keep the core as tiny as possible.
-
 ## Goals and non-goals
-Quarx strives to remain a *dry essence* of a dependency graph engine. It will replace MobX in production at [ellx.io](https://ellx.io) shortly.
+The goal for Quarx is to remain a *dry essence* of a dependency graph engine. As simple and tiny as it is, it will replace MobX in production at [ellx.io](https://ellx.io) shortly.
 
-Out of the box, Quarx is not a state management solution. However, I'd encourage you to try using it in combination with [Tinyx](https://github.com/dmaevsky/tinyx). Just put the root Tinyx store into a single `observable.box`, and derive the rest of the state reactively with a network of `computed` selectors.
+Out of the box, Quarx is not designed to be a state management solution. However, it can be used in combination with [Tinyx](https://github.com/dmaevsky/tinyx) or even Redux. Just put the root store into a single `observable.box`, and derive the rest of the state reactively with a network of `computed` selectors.
 
-#### NOTE
+**On a side note...**
+
 Converting an Observable to a Svelte store is a one-liner:
 ```js
 const fromObservable = obs => ({ subscribe: subscriber => autorun(() => subscriber(obs.get())) });
