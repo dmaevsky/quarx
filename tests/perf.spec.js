@@ -1,5 +1,5 @@
-import { serial as test } from 'ava';
-import { autorun, observable, computed } from '../index';
+const { serial: test } = require('ava');
+const { autorun, observable, computed } = require('../dist/index');
 
 function gc() {
   if (typeof global.gc === "function") {

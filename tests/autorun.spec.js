@@ -1,5 +1,5 @@
-import test from 'ava';
-import { autorun, observable, batch } from '../index';
+const test = require('ava');
+const { autorun, observable, batch } = require('../dist/index');
 
 test('autorun stops running after disposed', t => {
   const a = observable.box(1);

@@ -1,12 +1,12 @@
 {
   "devDependencies": {
     "ava": "^3.15.0",
-    "esm": "^3.2.25"
+    "esbuild": "^0.11.12"
   },
   "name": "quarx",
   "version": "1.0.1",
   "description": "Simple dependency graph engine, MobX inspired",
-  "main": "index.js",
+  "main": "dist/index.js",
   "module": "index.js",
   "types": "index.d.ts",
   "directories": {
@@ -14,6 +14,7 @@
   },
   "dependencies": {},
   "scripts": {
+    "build": "esbuild index.js --bundle --platform=node --outfile=dist/index.js",
     "test": "ava -v",
     "perf": "ava -v --config test.perf.config.js --node-arguments='--expose-gc'"
   },
@@ -21,9 +22,6 @@
     "files": [
       "**/*.spec.js",
       "!tests/perf.spec.js"
-    ],
-    "require": [
-      "esm"
     ]
   },
   "repository": {
