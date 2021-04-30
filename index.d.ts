@@ -19,7 +19,7 @@ declare module 'quarx' {
 
   export interface ObservableOptions<T> {
     name?: string;
-    equal?: (a: T, b: T) => boolean;
+    equals?: (a: T, b: T) => boolean;
   }
 
   export namespace observable {

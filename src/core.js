@@ -52,7 +52,12 @@ export function createAtom(name, onBecomeObserved) {
   }
 }
 
-export function autorun(computation) {
+export function autorun(computation, options = {}) {
+  const { name = 'autorun' } = options;
+  const onError = options.onError || function(e) {
+    console.log(`[Quarx]: uncaught exception in ${name}:`, e);
+  }
+
   let dependencies = new Set();
   let seqNo = 0, isRunning = false;
 
@@ -60,7 +65,7 @@ export function autorun(computation) {
 
   function invalidate() {
     if (stack.length && seqNo === sequenceNumber) {
-      throw new Error('Circular dependency detected');
+      throw new Error(`[Quarx]: Circular dependency detected in ${name}`);
     }
     seqNo = 0;
     invalidated.add(run);
@@ -79,7 +84,7 @@ export function autorun(computation) {
 
   function run() {
     if (isRunning) {
-      throw new Error('Self-dependency detected');
+      throw new Error(`[Quarx]: Self-dependency detected in ${name}`);
     }
     isRunning = true;
 
@@ -87,7 +92,14 @@ export function autorun(computation) {
     dependencies = new Set();
 
     stack.push({ link, invalidate, actualize });
-    computation();
+
+    try {
+      computation();
+    }
+    catch (e) {
+      onError(e);
+    }
+
     stack.pop();
 
     // Unsubscribe from previous dependencies which have not been hit

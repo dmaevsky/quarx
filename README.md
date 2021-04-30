@@ -85,7 +85,7 @@ Using the primitives defined in the previous section one can construct observabl
 ```typescript
   export interface ObservableOptions<T> {
     name?: string;
-    equal?: (a: T, b: T) => boolean;
+    equals?: (a: T, b: T) => boolean;
   }
 
   export namespace observable {
@@ -96,9 +96,9 @@ Using the primitives defined in the previous section one can construct observabl
 ```
 Please refer to the [API reference](https://github.com/dmaevsky/quarx/blob/master/index.d.ts) for more detail.
 
-*Box* observables are the upstream leaves of the computations DAG. `aBox.get()` reports the box observed to the calling computation, and `aBox.set(value)` will report it changed if the `value` is different from the current one in the sense of the `equal` option (`===` by default). A *Box* in Quarx is never trying to make its content deeply observable like MobX. It represents a *single* observable value.
+*Box* observables are the upstream leaves of the computations DAG. `aBox.get()` reports the box observed to the calling computation, and `aBox.set(value)` will report it changed if the `value` is different from the current one in the sense of the `equals` option (`===` by default). A *Box* in Quarx is never trying to make its content deeply observable like MobX. It represents a *single* observable value.
 
-*Computed* observables are the intermediate nodes of the DAG representing the *reactive derivations*. `aComputed.get()` returns the result of the computation. If the computation threw an error, the `computed` will store it and re-throw on `get()`. Only if the computation result is different from the previously computed one in the sense of the `equal` option (`===` by default), the change will be reported downstream.
+*Computed* observables are the intermediate nodes of the DAG representing the *reactive derivations*. `aComputed.get()` returns the result of the computation. If the computation threw an error, the `computed` will store it and re-throw on `get()`. Only if the computation result is different from the previously computed one in the sense of the `equals` option (`===` by default), the change will be reported downstream.
 
 Computed observables are lazy: if they don't have any observers they will unsubscribe from all their upstream dependencies.
 

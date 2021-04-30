@@ -33,20 +33,25 @@ test('batched updates', t => {
 
 test('detect self dependency', t => {
   const a = observable.box(1);
+  let err;
+  const onError = e => err = e.message;
 
-  t.throws(() => {
-    autorun(() => {
-      a.set(a.get() + 1);
-    });
-  }, { instanceOf: Error, message: 'Self-dependency detected' });
+  autorun(() => {
+    a.set(a.get() + 1);
+  }, { onError });
+
+  t.is(err, '[Quarx]: Self-dependency detected in autorun');
 });
 
 test('detect circular dependencies', t => {
   const a = observable.box(1);
   const b = observable.box(1);
 
-  t.throws(() => {
-    autorun(() => a.set(b.get() + 1));
-    autorun(() => b.set(a.get() + 1));
-  }, { instanceOf: Error, message: 'Circular dependency detected' });
+  let err;
+  const onError = e => err = e.message;
+
+  autorun(() => a.set(b.get() + 1), { onError });
+  autorun(() => b.set(a.get() + 1), { onError });
+
+  t.is(err, '[Quarx]: Circular dependency detected in autorun');
 });

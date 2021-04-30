@@ -4,7 +4,7 @@
     "esbuild": "^0.11.12"
   },
   "name": "quarx",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "description": "Simple dependency graph engine, MobX inspired",
   "main": "dist/index.js",
   "module": "index.js",

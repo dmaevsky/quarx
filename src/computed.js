@@ -3,7 +3,7 @@ import { createAtom, autorun } from './core';
 export function computed(evaluate, options = {}) {
   const {
     name = 'computed',
-    equal = (a, b) => a === b
+    equals = (a, b) => a === b
   } = options;
 
   let result, error;
@@ -13,7 +13,7 @@ export function computed(evaluate, options = {}) {
   function computation() {
     try {
       const value = evaluate();
-      if (!error && equal(result, value)) return;
+      if (!error && equals(result, value)) return;
       result = value;
       error = null;
     }
