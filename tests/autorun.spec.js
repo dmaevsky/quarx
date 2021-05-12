@@ -53,7 +53,7 @@ test('detect self dependency', t => {
     a.set(a.get() + 1);
   }, { onError });
 
-  t.is(err, '[Quarx]: Self-dependency detected in autorun');
+  t.is(err, '[Quarx]: Circular dependency detected in autorun');
 });
 
 test('detect circular dependencies', t => {

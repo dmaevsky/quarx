@@ -64,14 +64,14 @@ export function autorun(computation, options = {}) {
   const link = dep => dependencies.add(dep);
 
   function invalidate() {
-    if (stack.length && seqNo === sequenceNumber) {
-      throw new Error(`[Quarx]: Circular dependency detected in ${name}`);
-    }
     seqNo = 0;
     invalidated.add(run);
   }
 
   function actualize() {
+    if (isRunning) {
+      throw new Error(`[Quarx]: Circular dependency detected in ${name}`);
+    }
     if (seqNo === sequenceNumber) return;
     if (!seqNo) return run();
 
@@ -83,9 +83,6 @@ export function autorun(computation, options = {}) {
   }
 
   function run() {
-    if (isRunning) {
-      throw new Error(`[Quarx]: Self-dependency detected in ${name}`);
-    }
     isRunning = true;
 
     const previousDeps = dependencies;

@@ -1,4 +1,3 @@
 export default {
-	files: ['tests/perf.spec.js'],
-  require: 'esm'
+	files: ['tests/perf.spec.js']
 };
