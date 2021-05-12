@@ -21,7 +21,7 @@ test('only recomputing hydrated computed', t => {
   const B = calc('B', () => boxB.get() * 10);
   const C = calc('C', () => boxC.get() * 10);
 
-  autorun(() => {
+  const off = autorun(() => {
     log.push(`autorun: ${boxA.get() ? B.get() : C.get()}`);
   });
 
@@ -35,6 +35,7 @@ test('only recomputing hydrated computed', t => {
   boxC.set(10);
 
   t.snapshot(log);
+  off();
 });
 
 test('discovering a new dependency path, only recalculating what is needed along it', t => {
@@ -46,7 +47,7 @@ test('discovering a new dependency path, only recalculating what is needed along
   const C = calc('C', () => A.get() >= 0 ? 1 : -1);
   const D = calc('D', () => C.get() * 42);
 
-  autorun(() => {
+  const off = autorun(() => {
     log.push(`autorun: B = ${B.get()}`);
     log.push(`autorun: D = ${D.get()}`);
   });
@@ -55,4 +56,5 @@ test('discovering a new dependency path, only recalculating what is needed along
   A.set(1);
 
   t.snapshot(log);
+  off();
 });

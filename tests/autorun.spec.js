@@ -21,7 +21,7 @@ test('batched updates', t => {
   const b = observable.box(2);
   const values = [];
 
-  autorun(() => values.push(a.get() + b.get()));
+  const dispose = autorun(() => values.push(a.get() + b.get()));
 
   batch(() => {
     a.set(5);
@@ -29,6 +29,7 @@ test('batched updates', t => {
   });
 
   t.deepEqual(values, [3, 11]);
+  dispose();
 });
 
 test('untracked', t => {
@@ -36,12 +37,13 @@ test('untracked', t => {
   const b = observable.box(2);
   const values = [];
 
-  autorun(() => values.push(untracked(() => a.get()) + b.get()));
+  const dispose = autorun(() => values.push(untracked(() => a.get()) + b.get()));
 
   a.set(5);
   b.set(6);
 
   t.deepEqual(values, [3, 11]);
+  dispose();
 });
 
 test('detect self dependency', t => {
@@ -49,11 +51,12 @@ test('detect self dependency', t => {
   let err;
   const onError = e => err = e.message;
 
-  autorun(() => {
+  const dispose = autorun(() => {
     a.set(a.get() + 1);
   }, { onError });
 
   t.is(err, '[Quarx]: Circular dependency detected in autorun');
+  dispose();
 });
 
 test('detect circular dependencies', t => {
@@ -63,8 +66,10 @@ test('detect circular dependencies', t => {
   let err;
   const onError = e => err = e.message;
 
-  autorun(() => a.set(b.get() + 1), { onError });
-  autorun(() => b.set(a.get() + 1), { onError });
+  const dispose1 = autorun(() => a.set(b.get() + 1), { onError });
+  const dispose2 = autorun(() => b.set(a.get() + 1), { onError });
 
   t.is(err, '[Quarx]: Circular dependency detected in autorun');
+  dispose1();
+  dispose2();
 });

@@ -120,7 +120,10 @@ export function autorun(computation, options = {}) {
 }
 
 function collectUnobserved() {
+  ++batchDepth;
   for (let dispose of pendingDispose) dispose();
+  --batchDepth;
+
   pendingDispose.clear();
 }
 
@@ -129,11 +132,11 @@ function hydrate() {
   // console.debug(`Hydration ${sequenceNumber}`);
 
   ++batchDepth;
-
   for (let run of invalidated) run();
+  --batchDepth;
+
   collectUnobserved();
 
-  --batchDepth;
   // console.debug(`Hydration ${sequenceNumber} END`);
 }
 
