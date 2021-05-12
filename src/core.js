@@ -145,3 +145,10 @@ export function batch(t) {
   t();
   if (--batchDepth === 0) hydrate();
 }
+
+export function untracked(fn) {
+  stack.push(null);
+  const result = fn();
+  stack.pop();
+  return result;
+}

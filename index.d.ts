@@ -9,6 +9,9 @@ declare module 'quarx' {
   export function createAtom(name?: string, onBecomeObserved?: () => Disposer | void): Atom;
   export function autorun(computation: () => void): Disposer;
 
+  export function batch(changes: () => void): void;
+  export function untracked<T>(fn: () => T): T;
+
   export interface Observable<T> {
     get: () => T;
   }

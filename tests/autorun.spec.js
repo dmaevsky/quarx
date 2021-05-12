@@ -1,5 +1,5 @@
 const test = require('ava');
-const { autorun, observable, batch } = require('../dist/index');
+const { autorun, observable, batch, untracked } = require('../dist/index');
 
 test('autorun stops running after disposed', t => {
   const a = observable.box(1);
@@ -27,6 +27,19 @@ test('batched updates', t => {
     a.set(5);
     b.set(6);
   });
+
+  t.deepEqual(values, [3, 11]);
+});
+
+test('untracked', t => {
+  const a = observable.box(1);
+  const b = observable.box(2);
+  const values = [];
+
+  autorun(() => values.push(untracked(() => a.get()) + b.get()));
+
+  a.set(5);
+  b.set(6);
 
   t.deepEqual(values, [3, 11]);
 });

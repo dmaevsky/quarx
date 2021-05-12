@@ -68,6 +68,7 @@ During a single synchronous re-actualization (*hydration*) run of the DAG each c
   export function autorun(computation: () => void): Disposer;
 
   export function batch(changes: () => void): void;
+  export function untracked<T>(fn: () => T): T;
 ```
 #### NOTE
 If passed, the `onBecomeObserved` will be called the first time the atom becomes observed by a downstream computation. If it returns a function, this latter will be called when all the observers unsubscribe from the atom.
