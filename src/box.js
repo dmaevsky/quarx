@@ -6,7 +6,7 @@ export function box(value, options = {}) {
     equals = (a, b) => a === b
   } = options;
 
-  const atom = createAtom(name);
+  const atom = createAtom(null, { name });
 
   return {
     set(newValue) {

@@ -5,11 +5,23 @@ const pendingDispose = new Set();
 let sequenceNumber = 0;
 let batchDepth = 0;
 
-const noop = () => {};
+function tryCatch(fn, onError) {
+  try {
+    fn();
+  }
+  catch (e) {
+    onError(e);
+  }
+}
 
-export function createAtom(name, onBecomeObserved) {
+export function createAtom(onBecomeObserved, options = {}) {
+  const { name = 'atom' } = options;
+  const onError = options.onError || function(e) {
+    console.error(`[Quarx]: uncaught exception disposing ${name}:`, e);
+  }
+
   const observers = new Map();
-  let onBecomeUnobserved, actualize;
+  let dispose, actualize;
 
   return {
     reportObserved() {
@@ -18,17 +30,20 @@ export function createAtom(name, onBecomeObserved) {
       if (!invalidate) return false;
 
       if (!observers.size) {
-        if (onBecomeUnobserved && pendingDispose.has(onBecomeUnobserved)) {
-          pendingDispose.delete(onBecomeUnobserved);
+        if (dispose && pendingDispose.has(dispose)) {
+          pendingDispose.delete(dispose);
         }
-        else onBecomeUnobserved = onBecomeObserved && onBecomeObserved() || noop;
+        else if (onBecomeObserved) {
+          const cleanup = onBecomeObserved();
+          dispose = () => cleanup && tryCatch(cleanup, onError);
+        }
       }
 
       if (!observers.has(invalidate)) {
         observers.set(invalidate, {
           unlink() {
             observers.delete(invalidate);
-            if (!observers.size) pendingDispose.add(onBecomeUnobserved);
+            if (!observers.size && dispose) pendingDispose.add(dispose);
           },
           actualize() {
             if (actualize) actualize();
@@ -55,7 +70,7 @@ export function createAtom(name, onBecomeObserved) {
 export function autorun(computation, options = {}) {
   const { name = 'autorun' } = options;
   const onError = options.onError || function(e) {
-    console.log(`[Quarx]: uncaught exception in ${name}:`, e);
+    console.error(`[Quarx]: uncaught exception in ${name}:`, e);
   }
 
   let dependencies = new Set();
@@ -90,12 +105,7 @@ export function autorun(computation, options = {}) {
 
     stack.push({ link, invalidate, actualize });
 
-    try {
-      computation();
-    }
-    catch (e) {
-      onError(e);
-    }
+    tryCatch(computation, onError);
 
     stack.pop();
 
@@ -140,15 +150,23 @@ function hydrate() {
   // console.debug(`Hydration ${sequenceNumber} END`);
 }
 
-export function batch(t) {
+export function batch(fn) {
   ++batchDepth;
-  t();
-  if (--batchDepth === 0) hydrate();
+  try {
+    fn();
+  }
+  finally {
+    --batchDepth;
+  }
+  if (!batchDepth) hydrate();
 }
 
 export function untracked(fn) {
   stack.push(null);
-  const result = fn();
-  stack.pop();
-  return result;
+  try {
+    return fn();
+  }
+  finally {
+    stack.pop();
+  }
 }

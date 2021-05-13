@@ -64,8 +64,13 @@ During a single synchronous re-actualization (*hydration*) run of the DAG each c
     reportChanged: () => void;
   }
 
-  export function createAtom(name?: string, onBecomeObserved?: () => Disposer | void): Atom;
-  export function autorun(computation: () => void): Disposer;
+  export interface CoreOptions {
+    name?: string;
+    onError?: () => void;
+  }
+
+  export function createAtom(onBecomeObserved?: () => Disposer | void, options?: CoreOptions): Atom;
+  export function autorun(computation: () => void, options?: CoreOptions): Disposer;
 
   export function batch(changes: () => void): void;
   export function untracked<T>(fn: () => T): T;
