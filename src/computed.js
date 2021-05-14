@@ -8,7 +8,10 @@ export function computed(evaluate, options = {}) {
 
   let result, error;
 
-  const atom = createAtom(() => autorun(computation), { name });
+  const atom = createAtom(
+    () => autorun(computation, { name }),
+    { name: 'result:' + name }
+  );
 
   function computation() {
     try {
