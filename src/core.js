@@ -85,15 +85,22 @@ export function autorun(computation, options = {}) {
 
   function actualize() {
     if (isRunning) {
-      throw new Error(`[Quarx]: Circular dependency detected in ${name}`);
+      const trace = [...stack.map(({ name }) => name), name];
+      throw new Error(`[Quarx]: Circular dependency detected: ${trace.join(' -> ')}`);
     }
     if (seqNo === sequenceNumber) return;
     if (!seqNo) return run();
 
+    stack.push({ name });
+
     for (let dep of dependencies) {
       dep.actualize();
-      if (!seqNo) return run();
+      if (!seqNo) break;
     }
+
+    stack.pop();
+    if (!seqNo) return run();
+
     seqNo = sequenceNumber;
   }
 
@@ -103,7 +110,7 @@ export function autorun(computation, options = {}) {
     const previousDeps = dependencies;
     dependencies = new Set();
 
-    stack.push({ link, invalidate, actualize });
+    stack.push({ link, invalidate, actualize, name });
 
     tryCatch(computation, onError);
 
@@ -162,7 +169,7 @@ export function batch(fn) {
 }
 
 export function untracked(fn) {
-  stack.push(null);
+  stack.push({ name: '[untracked]' });
   try {
     return fn();
   }

@@ -53,9 +53,9 @@ test('detect self dependency', t => {
 
   const dispose = autorun(() => {
     a.set(a.get() + 1);
-  }, { onError });
+  }, { name: 'set_a', onError });
 
-  t.is(err, '[Quarx]: Circular dependency detected in autorun');
+  t.is(err, '[Quarx]: Circular dependency detected: set_a -> set_a -> set_a');
   dispose();
 });
 
@@ -66,10 +66,10 @@ test('detect circular dependencies', t => {
   let err;
   const onError = e => err = e.message;
 
-  const dispose1 = autorun(() => a.set(b.get() + 1), { onError });
-  const dispose2 = autorun(() => b.set(a.get() + 1), { onError });
+  const dispose1 = autorun(() => a.set(b.get() + 1), { name: 'set_a', onError });
+  const dispose2 = autorun(() => b.set(a.get() + 1), { name: 'set_b', onError });
 
-  t.is(err, '[Quarx]: Circular dependency detected in autorun');
+  t.is(err, '[Quarx]: Circular dependency detected: set_b -> set_a -> set_b');
   dispose1();
   dispose2();
 });
