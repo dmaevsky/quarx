@@ -5,6 +5,8 @@ const pendingDispose = new Set();
 let sequenceNumber = 0;
 let batchDepth = 0;
 
+export const getHydrationId = () => sequenceNumber;
+
 function tryCatch(fn, onError) {
   try {
     fn();
@@ -58,7 +60,7 @@ export function createAtom(onBecomeObserved, options = {}) {
     },
 
     reportChanged() {
-      // console.debug(`${name} changed`);
+      // console.debug(`[Quarx]: ${name} changed`);
       ({ actualize } = stack[stack.length - 1] || {});
       for (let invalidate of observers.keys()) invalidate();
 
@@ -105,6 +107,7 @@ export function autorun(computation, options = {}) {
   }
 
   function run() {
+    // console.debug(`[Quarx]: Running ${name}`, sequenceNumber);
     isRunning = true;
 
     const previousDeps = dependencies;
