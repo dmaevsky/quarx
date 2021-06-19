@@ -1,11 +1,20 @@
-const stack = [];
+const TAG = '@dmaevsky/quarx';
+const GLOBAL = typeof window === 'object' ? window :
+  typeof global === 'object' ? global : {};
 
-const invalidated = new Set();
-const pendingDispose = new Set();
-let sequenceNumber = 0;
-let batchDepth = 0;
+export let Quarx = GLOBAL[TAG];
 
-export const getHydrationId = () => sequenceNumber;
+if (Quarx) {
+  console.log(`[Quarx]: WARNING!!! Another instance of Quarx is already initialized.
+    This means code duplication and will possibly break in the future!`);
+}
+else Quarx = GLOBAL[TAG] = {
+  stack: [],
+  invalidated: new Set(),
+  pendingDispose: new Set(),
+  sequenceNumber: 0,
+  batchDepth: 0
+};
 
 function tryCatch(fn, onError) {
   try {
@@ -27,13 +36,13 @@ export function createAtom(onBecomeObserved, options = {}) {
 
   return {
     reportObserved() {
-      // console.debug(`${name} observed`);
-      const { invalidate, link } = stack[stack.length - 1] || {};
+      // console.debug(`[Quarx]: ${name} observed`);
+      const { invalidate, link } = Quarx.stack[Quarx.stack.length - 1] || {};
       if (!invalidate) return false;
 
       if (!observers.size) {
-        if (dispose && pendingDispose.has(dispose)) {
-          pendingDispose.delete(dispose);
+        if (dispose && Quarx.pendingDispose.has(dispose)) {
+          Quarx.pendingDispose.delete(dispose);
         }
         else if (onBecomeObserved) {
           const cleanup = onBecomeObserved();
@@ -45,7 +54,7 @@ export function createAtom(onBecomeObserved, options = {}) {
         observers.set(invalidate, {
           unlink() {
             observers.delete(invalidate);
-            if (!observers.size && dispose) pendingDispose.add(dispose);
+            if (!observers.size && dispose) Quarx.pendingDispose.add(dispose);
           },
           actualize() {
             if (actualize) actualize();
@@ -61,10 +70,10 @@ export function createAtom(onBecomeObserved, options = {}) {
 
     reportChanged() {
       // console.debug(`[Quarx]: ${name} changed`);
-      ({ actualize } = stack[stack.length - 1] || {});
+      ({ actualize } = Quarx.stack[Quarx.stack.length - 1] || {});
       for (let invalidate of observers.keys()) invalidate();
 
-      if (!batchDepth) hydrate();
+      if (!Quarx.batchDepth) hydrate();
     }
   }
 }
@@ -82,57 +91,57 @@ export function autorun(computation, options = {}) {
 
   function invalidate() {
     seqNo = 0;
-    invalidated.add(run);
+    Quarx.invalidated.add(run);
   }
 
   function actualize() {
     if (isRunning) {
-      const trace = [...stack.map(({ name }) => name), name];
+      const trace = [...Quarx.stack.map(({ name }) => name), name];
       throw new Error(`[Quarx]: Circular dependency detected: ${trace.join(' -> ')}`);
     }
-    if (seqNo === sequenceNumber) return;
+    if (seqNo === Quarx.sequenceNumber) return;
     if (!seqNo) return run();
 
-    stack.push({ name });
+    Quarx.stack.push({ name });
 
     for (let dep of dependencies) {
       dep.actualize();
       if (!seqNo) break;
     }
 
-    stack.pop();
+    Quarx.stack.pop();
     if (!seqNo) return run();
 
-    seqNo = sequenceNumber;
+    seqNo = Quarx.sequenceNumber;
   }
 
   function run() {
-    // console.debug(`[Quarx]: Running ${name}`, sequenceNumber);
+    // console.debug(`[Quarx]: Running ${name}`, Quarx.sequenceNumber);
     isRunning = true;
 
     const previousDeps = dependencies;
     dependencies = new Set();
 
-    stack.push({ link, invalidate, actualize, name });
+    Quarx.stack.push({ link, invalidate, actualize, name });
 
     tryCatch(computation, onError);
 
-    stack.pop();
+    Quarx.stack.pop();
 
     // Unsubscribe from previous dependencies which have not been hit
     for (let dep of previousDeps) {
       if (!dependencies.has(dep)) dep.unlink();
     }
 
-    invalidated.delete(run);
-    seqNo = sequenceNumber;
+    Quarx.invalidated.delete(run);
+    seqNo = Quarx.sequenceNumber;
     isRunning = false;
   }
 
   function dispose() {
     for (let dep of dependencies) dep.unlink();
     dependencies.clear();
-    if (!batchDepth) collectUnobserved();
+    if (!Quarx.batchDepth) collectUnobserved();
   }
 
   run();
@@ -140,43 +149,43 @@ export function autorun(computation, options = {}) {
 }
 
 function collectUnobserved() {
-  ++batchDepth;
-  for (let dispose of pendingDispose) dispose();
-  --batchDepth;
+  ++Quarx.batchDepth;
+  for (let dispose of Quarx.pendingDispose) dispose();
+  --Quarx.batchDepth;
 
-  pendingDispose.clear();
+  Quarx.pendingDispose.clear();
 }
 
 function hydrate() {
-  ++sequenceNumber;
-  // console.debug(`Hydration ${sequenceNumber}`);
+  ++Quarx.sequenceNumber;
+  // console.debug(`[Quarx]: Hydration ${Quarx.sequenceNumber}`);
 
-  ++batchDepth;
-  for (let run of invalidated) run();
-  --batchDepth;
+  ++Quarx.batchDepth;
+  for (let run of Quarx.invalidated) run();
+  --Quarx.batchDepth;
 
   collectUnobserved();
 
-  // console.debug(`Hydration ${sequenceNumber} END`);
+  // console.debug(`[Quarx]: Hydration ${Quarx.sequenceNumber} END`);
 }
 
 export function batch(fn) {
-  ++batchDepth;
+  ++Quarx.batchDepth;
   try {
     fn();
   }
   finally {
-    --batchDepth;
+    --Quarx.batchDepth;
   }
-  if (!batchDepth) hydrate();
+  if (!Quarx.batchDepth) hydrate();
 }
 
 export function untracked(fn) {
-  stack.push({ name: '[untracked]' });
+  Quarx.stack.push({ name: '[untracked]' });
   try {
     return fn();
   }
   finally {
-    stack.pop();
+    Quarx.stack.pop();
   }
 }
