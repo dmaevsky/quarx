@@ -136,6 +136,7 @@ export function autorun(computation, options = {}) {
     Quarx.invalidated.delete(run);
     seqNo = Quarx.sequenceNumber;
     isRunning = false;
+    // console.debug(`[Quarx]: Finished ${name}`, Quarx.sequenceNumber);
   }
 
   function dispose() {
@@ -144,7 +145,7 @@ export function autorun(computation, options = {}) {
     if (!Quarx.batchDepth) collectUnobserved();
   }
 
-  run();
+  batch(run);
   return dispose;
 }
 
@@ -157,6 +158,8 @@ function collectUnobserved() {
 }
 
 function hydrate() {
+  if (!Quarx.invalidated.size) return;
+
   ++Quarx.sequenceNumber;
   // console.debug(`[Quarx]: Hydration ${Quarx.sequenceNumber}`);
 
