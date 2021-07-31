@@ -10,6 +10,7 @@ if (Quarx) {
 }
 else Quarx = GLOBAL[TAG] = {
   stack: [],
+  observedMapStack: [],
   invalidated: new Set(),
   pendingDispose: new Set(),
   sequenceNumber: 0,
@@ -35,9 +36,10 @@ export function createAtom(onBecomeObserved, options = {}) {
   let dispose, actualize;
 
   return {
-    reportObserved() {
+    reportObserved(observable, val) {
       // console.debug(`[Quarx]: ${name} observed`);
       const { invalidate, link } = Quarx.stack[Quarx.stack.length - 1] || {};
+      if (observable) Quarx.observedMapStack.forEach(frame => frame.set(observable, val))
       if (!invalidate) return false;
 
       if (!observers.size) {

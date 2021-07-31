@@ -9,6 +9,7 @@ export function box(value, options = {}) {
   const atom = createAtom(null, { name });
 
   return {
+    equals(other) { return equals(value, other) },
     set(newValue) {
       if (!equals(newValue, value)) {
         value = newValue;
@@ -16,7 +17,7 @@ export function box(value, options = {}) {
       }
     },
     get() {
-      atom.reportObserved();
+      atom.reportObserved(this, value);
       return value;
     }
   };

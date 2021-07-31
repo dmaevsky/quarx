@@ -35,4 +35,5 @@ declare module 'quarx' {
   }
 
   export function computed<T>(computation: () => T, options?: ObservableOptions<T>): Observable<T>;
+  export function memoizeOne<T>(computation: () => T): Observable<T>;
 }
