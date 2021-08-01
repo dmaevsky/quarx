@@ -58,3 +58,25 @@ test('discovering a new dependency path, only recalculating what is needed along
   t.snapshot(log);
   off();
 });
+
+test('caches subcomputations', t => {
+  const a = observable.box(2, { name: 'boxA' });
+  const b = observable.box(3, { name: 'boxB' });
+
+  let aRecomputed, bRecomputed, sumRecomputed;
+
+  const squareA = computed(() => (aRecomputed = true) && a.get() * a.get(), { name: 'squareA' });
+  const squareB = computed(() => (bRecomputed = true) && b.get() * b.get(), { name: 'squareB' });
+  const sum = computed(() => (sumRecomputed = true) && squareA.get() + squareB.get(), { name: 'sumSquares' });
+
+  autorun(() => sum.get());
+
+  t.true(aRecomputed);
+  t.true(bRecomputed);
+  t.true(sumRecomputed);
+
+  aRecomputed = bRecomputed = sumRecomputed = false;
+  a.set(4);
+  t.true(aRecomputed);
+  t.false(bRecomputed);
+});

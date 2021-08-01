@@ -2,19 +2,21 @@ const TAG = '@dmaevsky/quarx';
 const GLOBAL = typeof window === 'object' ? window :
   typeof global === 'object' ? global : {};
 
-export let Quarx = GLOBAL[TAG];
-
-if (Quarx) {
+if (GLOBAL[TAG]) {
   console.log(`[Quarx]: WARNING!!! Another instance of Quarx is already initialized.
     This means code duplication and will possibly break in the future!`);
 }
-else Quarx = GLOBAL[TAG] = {
+else GLOBAL[TAG] = {
   stack: [],
   invalidated: new Set(),
   pendingDispose: new Set(),
-  sequenceNumber: 0,
-  batchDepth: 0
+  sequenceNumber: 1,
+  batchDepth: 0,
+  debug: () => {},
+  error: console.error
 };
+
+export const Quarx = GLOBAL[TAG];
 
 function tryCatch(fn, onError) {
   try {
@@ -28,7 +30,7 @@ function tryCatch(fn, onError) {
 export function createAtom(onBecomeObserved, options = {}) {
   const { name = 'atom' } = options;
   const onError = options.onError || function(e) {
-    console.error(`[Quarx]: uncaught exception disposing ${name}:`, e);
+    Quarx.error(`[Quarx]: uncaught exception disposing ${name}:`, e);
   }
 
   const observers = new Map();
@@ -36,7 +38,7 @@ export function createAtom(onBecomeObserved, options = {}) {
 
   return {
     reportObserved() {
-      // console.debug(`[Quarx]: ${name} observed`);
+      Quarx.debug(`[Quarx]: ${name} observed`);
       const { invalidate, link } = Quarx.stack[Quarx.stack.length - 1] || {};
       if (!invalidate) return false;
 
@@ -69,7 +71,7 @@ export function createAtom(onBecomeObserved, options = {}) {
     },
 
     reportChanged() {
-      // console.debug(`[Quarx]: ${name} changed`);
+      Quarx.debug(`[Quarx]: ${name} changed`);
       ({ actualize } = Quarx.stack[Quarx.stack.length - 1] || {});
       for (let invalidate of observers.keys()) invalidate();
 
@@ -81,7 +83,7 @@ export function createAtom(onBecomeObserved, options = {}) {
 export function autorun(computation, options = {}) {
   const { name = 'autorun' } = options;
   const onError = options.onError || function(e) {
-    console.error(`[Quarx]: uncaught exception in ${name}:`, e);
+    Quarx.error(`[Quarx]: uncaught exception in ${name}:`, e);
   }
 
   let dependencies = new Set();
@@ -116,7 +118,7 @@ export function autorun(computation, options = {}) {
   }
 
   function run() {
-    // console.debug(`[Quarx]: Running ${name}`, Quarx.sequenceNumber);
+    Quarx.debug(`[Quarx]: Running ${name}`, Quarx.sequenceNumber);
     isRunning = true;
 
     const previousDeps = dependencies;
@@ -136,7 +138,7 @@ export function autorun(computation, options = {}) {
     Quarx.invalidated.delete(run);
     seqNo = Quarx.sequenceNumber;
     isRunning = false;
-    // console.debug(`[Quarx]: Finished ${name}`, Quarx.sequenceNumber);
+    Quarx.debug(`[Quarx]: Finished ${name}`, Quarx.sequenceNumber);
   }
 
   function dispose() {
@@ -161,7 +163,7 @@ function hydrate() {
   if (!Quarx.invalidated.size) return;
 
   ++Quarx.sequenceNumber;
-  // console.debug(`[Quarx]: Hydration ${Quarx.sequenceNumber}`);
+  Quarx.debug(`[Quarx]: Hydration ${Quarx.sequenceNumber}`);
 
   ++Quarx.batchDepth;
   for (let run of Quarx.invalidated) run();
@@ -169,7 +171,7 @@ function hydrate() {
 
   collectUnobserved();
 
-  // console.debug(`[Quarx]: Hydration ${Quarx.sequenceNumber} END`);
+  Quarx.debug(`[Quarx]: Hydration ${Quarx.sequenceNumber} END`);
 }
 
 export function batch(fn) {

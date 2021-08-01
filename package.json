@@ -4,7 +4,7 @@
     "esbuild": "^0.11.12"
   },
   "name": "quarx",
-  "version": "3.3.1",
+  "version": "3.4.0",
   "description": "Simple dependency graph engine, MobX inspired",
   "main": "dist/index.js",
   "module": "index.js",
@@ -14,7 +14,7 @@
   },
   "dependencies": {},
   "scripts": {
-    "build": "esbuild index.js --bundle --platform=node --outfile=dist/index.js",
+    "build": "esbuild index.js --sourcemap --bundle --platform=node --outfile=dist/index.js",
     "test": "ava -v",
     "perf": "ava -v --config test.perf.config.js --node-arguments='--expose-gc'"
   },
