@@ -1,4 +1,4 @@
-import { createAtom } from './core';
+import { createAtom } from './core.js';
 
 export function box(value, options = {}) {
   const {

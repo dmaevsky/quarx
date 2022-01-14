@@ -1,4 +1,4 @@
-import { createAtom, autorun } from './core';
+import { createAtom, autorun } from './core.js';
 
 export function computed(evaluate, options = {}) {
   const {

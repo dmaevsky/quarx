@@ -1,5 +1,5 @@
-const test = require('ava');
-const { autorun, observable, computed } = require('../dist/index');
+import test from 'ava';
+import { autorun, observable, computed } from '../index.js';
 
 const computedLogged = log => (name, computation) => computed(() => {
   log.push(`computing ${name}`);

@@ -1,5 +1,5 @@
-const { serial: test } = require('ava');
-const { autorun, observable, computed } = require('../dist/index');
+import test from 'ava';
+import { autorun, observable, computed } from '../index.js';
 
 function gc() {
   if (typeof global.gc === "function") {
@@ -14,7 +14,7 @@ function now() {
 
 const log = console.log;
 
-test(`one observes ten thousand that observe one`, function (t) {
+test.serial(`one observes ten thousand that observe one`, function (t) {
   gc()
   const a = observable.box(2)
 
@@ -61,7 +61,7 @@ test(`one observes ten thousand that observe one`, function (t) {
   )
 });
 
-test(`five hundrend properties that observe their sibling`, function (t) {
+test.serial(`five hundrend properties that observe their sibling`, function (t) {
   gc()
   let n = 500;
   const observables = [observable.box(1)]
@@ -99,7 +99,7 @@ test(`five hundrend properties that observe their sibling`, function (t) {
   )
 });
 
-test(`late dependency change`, function (t) {
+test.serial(`late dependency change`, function (t) {
   gc()
   const values = []
   for (let i = 0; i < 100; i++) values.push(observable.box(0))
@@ -120,7 +120,7 @@ test(`late dependency change`, function (t) {
   log("Late dependency change - Updated in " + (new Date() - start) + "ms.")
 })
 
-test(`array reduce`, function (t) {
+test.serial(`array reduce`, function (t) {
   gc()
   let aCalc = 0
   const ar = observable.box([])
@@ -164,7 +164,7 @@ test(`array reduce`, function (t) {
   )
 })
 
-test(`array classic loop`, function (t) {
+test.serial(`array classic loop`, function (t) {
   gc()
   const ar = []
   const len = observable.box(0)
