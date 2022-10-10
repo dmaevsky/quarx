@@ -1,6 +1,6 @@
 {
   "name": "quarx",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "Simple dependency graph engine, MobX inspired",
   "type": "module",
   "main": "index.js",
@@ -14,7 +14,7 @@
     "perf": "ava -v --config test.perf.config.js --no-worker-threads --node-arguments='--expose-gc'"
   },
   "devDependencies": {
-    "ava": "^4.0.1"
+    "ava": "^4.3.3"
   },
   "ava": {
     "files": [
