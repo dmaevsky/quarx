@@ -80,3 +80,29 @@ test('caches subcomputations', t => {
   t.true(aRecomputed);
   t.false(bRecomputed);
 });
+
+test('circular deps with computed', t => {
+  const fa = observable.box(() => 5, { name: 'fa '});
+  const fb = observable.box(() => a.get() + 6, { name: 'fb'});
+
+  const a = computed(() => fa.get()(), { name: 'a' });
+  const b = computed(() => fb.get()(), { name: 'b' });
+
+  let val;
+  const off = autorun(() => {
+    try {
+      val = b.get();
+    }
+    catch (e) {
+      val = e;
+    }
+  });
+
+  t.is(val, 11);
+  fa.set(() => b.get());
+
+  t.true(val instanceof Error);
+  t.is(val.message, '[Quarx]: Circular dependency detected: a -> b -> a');
+
+  off();
+});

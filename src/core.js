@@ -12,6 +12,7 @@ else GLOBAL[TAG] = {
   pendingDispose: new Set(),
   sequenceNumber: 1,
   batchDepth: 0,
+  processingQueue: 0,
   debug: () => {},
   error: console.error
 };
@@ -75,7 +76,7 @@ export function createAtom(onBecomeObserved, options = {}) {
       ({ actualize } = Quarx.stack[Quarx.stack.length - 1] || {});
       for (let invalidate of observers.keys()) invalidate();
 
-      if (!Quarx.batchDepth) hydrate();
+      hydrate();
     }
   }
 }
@@ -92,6 +93,9 @@ export function autorun(computation, options = {}) {
   const link = dep => dependencies.add(dep);
 
   function invalidate() {
+    if (Quarx.processingQueue + (seqNo === Quarx.sequenceNumber) >= 2) {
+      return Quarx.debug(`[Quarx]: prevent invalidating ${name} ${Quarx.processingQueue === 1 ? ': cycle detected' : 'during cleanup'}`);
+    }
     seqNo = 0;
     Quarx.invalidated.add(run);
   }
@@ -99,19 +103,25 @@ export function autorun(computation, options = {}) {
   function actualize() {
     if (isRunning) {
       const trace = [...Quarx.stack.map(({ name }) => name), name];
-      throw new Error(`[Quarx]: Circular dependency detected: ${trace.join(' -> ')}`);
+      const message = `[Quarx]: Circular dependency detected: ${trace.join(' -> ')}`;
+      Quarx.debug(message);
+      throw new Error(message);
     }
     if (seqNo === Quarx.sequenceNumber) return;
     if (!seqNo) return run();
 
     Quarx.stack.push({ name });
 
-    for (let dep of dependencies) {
-      dep.actualize();
-      if (!seqNo) break;
+    try {
+      for (let dep of dependencies) {
+        dep.actualize();
+        if (!seqNo) break;
+      }
+    }
+    finally {
+      Quarx.stack.pop();
     }
 
-    Quarx.stack.pop();
     if (!seqNo) return run();
 
     seqNo = Quarx.sequenceNumber;
@@ -144,7 +154,7 @@ export function autorun(computation, options = {}) {
   function dispose() {
     for (let dep of dependencies) dep.unlink();
     dependencies.clear();
-    if (!Quarx.batchDepth) collectUnobserved();
+    collectUnobserved();
   }
 
   batch(run);
@@ -152,22 +162,24 @@ export function autorun(computation, options = {}) {
 }
 
 function collectUnobserved() {
-  ++Quarx.batchDepth;
+  if (Quarx.batchDepth + Quarx.processingQueue) return;
+
+  Quarx.processingQueue += 2;
   for (let dispose of Quarx.pendingDispose) dispose();
-  --Quarx.batchDepth;
+  Quarx.processingQueue -= 2;
 
   Quarx.pendingDispose.clear();
 }
 
 function hydrate() {
-  if (!Quarx.invalidated.size) return;
+  if (!Quarx.invalidated.size || Quarx.batchDepth + Quarx.processingQueue) return;
 
   ++Quarx.sequenceNumber;
   Quarx.debug(`[Quarx]: Hydration ${Quarx.sequenceNumber}`);
 
-  ++Quarx.batchDepth;
+  ++Quarx.processingQueue;
   for (let run of Quarx.invalidated) run();
-  --Quarx.batchDepth;
+  --Quarx.processingQueue;
 
   collectUnobserved();
 
@@ -182,7 +194,7 @@ export function batch(fn) {
   finally {
     --Quarx.batchDepth;
   }
-  if (!Quarx.batchDepth) hydrate();
+  hydrate();
 }
 
 export function untracked(fn) {
