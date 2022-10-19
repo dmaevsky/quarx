@@ -2,12 +2,12 @@ const TAG = '@dmaevsky/quarx';
 
 if (globalThis[TAG]) {
   console.log(`[Quarx]: WARNING!!! Found multiple Quarx instances:
-    ---> ${globalThis[TAG].url} (globals)
-    ---> ${import.meta.url}
+    ${globalThis[TAG].importStack}
+    ${new Error().stack.replace(/^.*/, '(2)')}
   This means code duplication and will possibly break in the future!`);
 }
 else globalThis[TAG] = {
-  url: import.meta.url,
+  importStack: new Error().stack.replace(/^.*/, '(1)'),
   stack: [],
   invalidated: new Set(),
   pendingDispose: new Set(),
