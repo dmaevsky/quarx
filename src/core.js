@@ -1,12 +1,13 @@
 const TAG = '@dmaevsky/quarx';
-const GLOBAL = typeof window === 'object' ? window :
-  typeof global === 'object' ? global : {};
 
-if (GLOBAL[TAG]) {
-  console.log(`[Quarx]: WARNING!!! Another instance of Quarx is already initialized.
-    This means code duplication and will possibly break in the future!`);
+if (globalThis[TAG]) {
+  console.log(`[Quarx]: WARNING!!! Found multiple Quarx instances:
+    ---> ${globalThis[TAG].url} (globals)
+    ---> ${import.meta.url}
+  This means code duplication and will possibly break in the future!`);
 }
-else GLOBAL[TAG] = {
+else globalThis[TAG] = {
+  url: import.meta.url,
   stack: [],
   invalidated: new Set(),
   pendingDispose: new Set(),
@@ -17,7 +18,7 @@ else GLOBAL[TAG] = {
   error: console.error
 };
 
-export const Quarx = GLOBAL[TAG];
+export const Quarx = globalThis[TAG];
 
 function tryCatch(fn, onError) {
   try {
