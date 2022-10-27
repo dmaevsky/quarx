@@ -13,7 +13,7 @@ else globalThis[TAG] = {
   pendingDispose: new Set(),
   sequenceNumber: 1,
   batchDepth: 0,
-  processingQueue: 0,
+  processingQueue: 0,   // 1: processing computation queue; 2: processing dispose queue
   debug: () => {},
   error: console.error
 };
@@ -95,7 +95,8 @@ export function autorun(computation, options = {}) {
 
   function invalidate() {
     if (Quarx.processingQueue + (seqNo === Quarx.sequenceNumber) >= 2) {
-      return Quarx.debug(`[Quarx]: prevent invalidating ${name} ${Quarx.processingQueue === 1 ? ': cycle detected' : 'during cleanup'}`);
+      // No invalidations allowed in dispose callbacks, and no invalidations of already up-to-date computations while still hydrating
+      return Quarx.error(`[Quarx]: prevent invalidating ${name} ${Quarx.processingQueue === 1 ? ': cycle detected' : 'during dispose'}`);
     }
     seqNo = 0;
     Quarx.invalidated.add(run);
@@ -152,18 +153,18 @@ export function autorun(computation, options = {}) {
     Quarx.debug(`[Quarx]: Finished ${name}`, Quarx.sequenceNumber);
   }
 
-  function dispose() {
+  function off() {
     for (let dep of dependencies) dep.unlink();
     dependencies.clear();
     collectUnobserved();
   }
 
   batch(run);
-  return dispose;
+  return off;
 }
 
 function collectUnobserved() {
-  if (Quarx.batchDepth + Quarx.processingQueue) return;
+  if (Quarx.processingQueue) return;
 
   Quarx.processingQueue += 2;
   for (let dispose of Quarx.pendingDispose) dispose();
