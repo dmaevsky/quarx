@@ -1,10 +1,10 @@
 # 🜉 Quarx
-Simple tiny dependency graph engine, MobX inspired
+Simple tiny reactivity engine, MobX inspired
 
 ## Introduction
 In less than 200 lines of code and zero dependencies Quarx supports most of MobX core functionality:
 - `createAtom`, `autorun` are the low-level core primitives of the Quarx reactive engine
-- `computed`, `observable.box` are built on top of those primitives
+- `computed`, observable `box` are built on top of those primitives
 - all of the above behave the same way as their MobX equivalents
 
 Unlike MobX, Quarx does not support circular computations even if they might eventually settle. This deliberate design decision allowed for dramatic algorithm simplification while circular calculation graphs do little to promote code clarity.
@@ -15,10 +15,12 @@ With greedy execution, one can create new observed atoms on the fly (from within
 
 ## Usage example
 ```js
-import { autorun, computed, observable, batch } from 'quarx';
+import { autorun, batch } from 'quarx';
+import { box } from 'quarx/box';
+import { computed } from 'quarx/computed';
 
-const a = observable.box(1);
-const b = observable.box(2);
+const a = box(1);
+const b = box(2);
 const a_plus_b = computed(() => a.get() + b.get());
 
 console.log('Initial calculation');
@@ -86,7 +88,7 @@ If passed, the `onBecomeObserved` will be called the first time the atom becomes
 
 ## Basic observables
 Using the primitives defined in the previous section one can construct observables of arbitrarily complex behavior.
-`observable.box` and `computed` are two classical basic building blocks of a dependency graph.
+observable `box` and `computed` are two classical basic building blocks of a dependency graph.
 
 ```typescript
   export interface ObservableOptions<T> {
@@ -94,10 +96,7 @@ Using the primitives defined in the previous section one can construct observabl
     equals?: (a: T, b: T) => boolean;
   }
 
-  export namespace observable {
-    export function box<T>(value: T, options?: ObservableOptions<T>): Box<T>;
-  }
-
+  export function box<T>(value: T, options?: ObservableOptions<T>): Box<T>;
   export function computed<T>(computation: () => T, options?: ObservableOptions<T>): Observable<T>;
 ```
 Please refer to the [API reference](https://github.com/dmaevsky/quarx/blob/master/index.d.ts) for more detail.
@@ -111,9 +110,9 @@ Computed observables are lazy: if they don't have any observers they will unsubs
 All the observables' and atoms' names are for debug purposes only: they do not affect the execution logic.
 
 ## Goals and non-goals
-The goal for Quarx is to remain a *dry essence* of a dependency graph engine. As simple and tiny as it is, it will replace MobX in production at [ellx.io](https://ellx.io) shortly.
+The goal for Quarx is to remain a *dry essence* of a reactivity engine. As simple and tiny as it is, it is used in production at [ellx.io](https://ellx.io).
 
-Out of the box, Quarx is not designed to be a state management solution. However, it can be used in combination with [Tinyx](https://github.com/dmaevsky/tinyx) or even Redux. Just put the root store into a single `observable.box`, and derive the rest of the state reactively with a network of `computed` selectors.
+Out of the box, Quarx is not designed to be a state management solution. However, it can be used in combination with [Tinyx](https://github.com/dmaevsky/tinyx) or even Redux. Just put the root store into a single `box`, and derive the rest of the state reactively with a network of `computed` selectors.
 
 **On a side note...**
 

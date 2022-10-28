@@ -13,7 +13,8 @@ else globalThis[TAG] = {
   pendingDispose: new Set(),
   sequenceNumber: 1,
   batchDepth: 0,
-  processingQueue: 0,   // 1: processing computation queue; 2: processing dispose queue
+  hydrating: false,
+  cleaningUp: false,
   debug: () => {},
   error: console.error
 };
@@ -94,10 +95,15 @@ export function autorun(computation, options = {}) {
   const link = dep => dependencies.add(dep);
 
   function invalidate() {
-    if (Quarx.processingQueue + (seqNo === Quarx.sequenceNumber) >= 2) {
-      // No invalidations allowed in dispose callbacks, and no invalidations of already up-to-date computations while still hydrating
-      return Quarx.error(`[Quarx]: prevent invalidating ${name} ${Quarx.processingQueue === 1 ? ': cycle detected' : 'during dispose'}`);
+    if (Quarx.cleaningUp) {
+      // No invalidations allowed in dispose callbacks
+      return Quarx.error(`[Quarx]: prevent invalidating ${name} while running the dispose queue`);
     }
+    if (Quarx.hydrating && seqNo === Quarx.sequenceNumber) {
+      // Invalidating a freshly hydrated computation == cycle, but cannot throw here yet, because we don't have the stack to report
+      return Quarx.error(`[Quarx]: prevent invalidating ${name}: cycle detected`);
+    }
+
     seqNo = 0;
     Quarx.invalidated.add(run);
   }
@@ -164,24 +170,24 @@ export function autorun(computation, options = {}) {
 }
 
 function collectUnobserved() {
-  if (Quarx.processingQueue) return;
+  if (Quarx.hydrating || Quarx.cleaningUp) return;
 
-  Quarx.processingQueue += 2;
+  Quarx.cleaningUp = true;
   for (let dispose of Quarx.pendingDispose) dispose();
-  Quarx.processingQueue -= 2;
+  Quarx.cleaningUp = false;
 
   Quarx.pendingDispose.clear();
 }
 
 function hydrate() {
-  if (!Quarx.invalidated.size || Quarx.batchDepth + Quarx.processingQueue) return;
+  if (Quarx.hydrating || Quarx.cleaningUp || Quarx.batchDepth || !Quarx.invalidated.size) return;
 
   ++Quarx.sequenceNumber;
   Quarx.debug(`[Quarx]: Hydration ${Quarx.sequenceNumber}`);
 
-  ++Quarx.processingQueue;
+  Quarx.hydrating = true;
   for (let run of Quarx.invalidated) run();
-  --Quarx.processingQueue;
+  Quarx.hydrating = false;
 
   collectUnobserved();
 

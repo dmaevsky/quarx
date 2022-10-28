@@ -1,8 +1,9 @@
 import test from 'ava';
-import { autorun, observable, batch, untracked } from '../index.js';
+import { autorun, batch, untracked, createAtom } from '../src/core.js';
+import { box } from '../src/box.js';
 
 test('autorun stops running after disposed', t => {
-  const a = observable.box(1);
+  const a = box(1);
   const values = [];
 
   const dispose = autorun(() => values.push(a.get()));
@@ -17,8 +18,8 @@ test('autorun stops running after disposed', t => {
 });
 
 test('batched updates', t => {
-  const a = observable.box(1);
-  const b = observable.box(2);
+  const a = box(1);
+  const b = box(2);
   const values = [];
 
   const dispose = autorun(() => values.push(a.get() + b.get()));
@@ -33,8 +34,8 @@ test('batched updates', t => {
 });
 
 test('untracked', t => {
-  const a = observable.box(1);
-  const b = observable.box(2);
+  const a = box(1);
+  const b = box(2);
   const values = [];
 
   const dispose = autorun(() => values.push(untracked(() => a.get()) + b.get()));
@@ -49,7 +50,7 @@ test('untracked', t => {
 test('computation invalidating itself is not considered circular unless it is later invalidated by something else', t => {
   // Not sure this is the correct behavior, but it is in line with the logic that
   // when a computation finishes calculating it is considered "actualized"
-  const a = observable.box(1);
+  const a = box(1);
   const values = [];
 
   const dispose = autorun(() => {
@@ -65,8 +66,8 @@ test('computation invalidating itself is not considered circular unless it is la
 });
 
 test('detect self dependency', t => {
-  const a = observable.box(1);
-  const b = observable.box(55);
+  const a = box(1);
+  const b = box(55);
   let err;
   const onError = e => err = e.message;
 
@@ -81,8 +82,8 @@ test('detect self dependency', t => {
 });
 
 test('detect circular dependencies', t => {
-  const a = observable.box(1);
-  const b = observable.box(1);
+  const a = box(1);
+  const b = box(1);
 
   let err;
   const onError = e => err = e.message;
@@ -96,7 +97,7 @@ test('detect circular dependencies', t => {
 });
 
 test('first computation run invalidation', t => {
-  const b = observable.box(5);
+  const b = box(5);
   const values = [];
 
   const dispose1 = autorun(() => values.push(b.get()));
@@ -105,4 +106,18 @@ test('first computation run invalidation', t => {
   t.deepEqual(values, [5, 6]);
   dispose1();
   dispose2();
+});
+
+test('greedy cleanup when disposing an autorun from another', t => {
+  let a = 5;
+  const off1 = autorun(() => {
+    createAtom(() => () => a = 42).reportObserved();
+  });
+
+  const off2 = autorun(() => {
+    off1();
+    t.is(a, 42);
+  });
+
+  off2();
 });

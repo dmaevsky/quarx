@@ -1,10 +1,16 @@
 {
   "name": "quarx",
-  "version": "4.1.1",
-  "description": "Simple dependency graph engine, MobX inspired",
+  "version": "5.0.0",
+  "description": "Simple tiny reactivity engine",
   "type": "module",
-  "main": "index.js",
-  "module": "index.js",
+  "main": "src/core.js",
+  "module": "src/core.js",
+  "exports": {
+    ".": "./src/core.js",
+    "./box": "./src/box.js",
+    "./computed": "./src/computed.js",
+    "./map": "./src/map.js"
+  },
   "types": "index.d.ts",
   "directories": {
     "test": "tests"
@@ -27,11 +33,10 @@
     "url": "git+ssh://git@github.com/dmaevsky/quarx.git"
   },
   "keywords": [
-    "Reactive",
+    "reactivity",
     "dependency",
     "graph",
-    "engine",
-    "MobX"
+    "engine"
   ],
   "author": "Dmitry Maevsky",
   "license": "MIT",

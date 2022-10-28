@@ -1,5 +1,7 @@
 import test from 'ava';
-import { autorun, observable, computed } from '../index.js';
+import { autorun } from '../src/core.js';
+import { box } from '../src/box.js';
+import { computed } from '../src/computed.js';
 
 function gc() {
   if (typeof global.gc === "function") {
@@ -16,7 +18,7 @@ const log = console.log;
 
 test.serial(`one observes ten thousand that observe one`, function (t) {
   gc()
-  const a = observable.box(2)
+  const a = box(2);
 
   // many observers that listen to one..
   const observers = []
@@ -64,7 +66,7 @@ test.serial(`one observes ten thousand that observe one`, function (t) {
 test.serial(`five hundrend properties that observe their sibling`, function (t) {
   gc()
   let n = 500;
-  const observables = [observable.box(1)]
+  const observables = [box(1)]
   for (let i = 0; i < n; i++) {
       ;(function (idx) {
           observables.push(
@@ -102,7 +104,7 @@ test.serial(`five hundrend properties that observe their sibling`, function (t) 
 test.serial(`late dependency change`, function (t) {
   gc()
   const values = []
-  for (let i = 0; i < 100; i++) values.push(observable.box(0))
+  for (let i = 0; i < 100; i++) values.push(box(0))
 
   const sum = computed(function () {
       let sum = 0
@@ -123,8 +125,8 @@ test.serial(`late dependency change`, function (t) {
 test.serial(`array reduce`, function (t) {
   gc()
   let aCalc = 0
-  const ar = observable.box([])
-  const b = observable.box(1)
+  const ar = box([])
+  const b = box(1)
 
   const sum = computed(function () {
       aCalc++
@@ -167,9 +169,9 @@ test.serial(`array reduce`, function (t) {
 test.serial(`array classic loop`, function (t) {
   gc()
   const ar = []
-  const len = observable.box(0)
+  const len = box(0)
   let aCalc = 0
-  const b = observable.box(1)
+  const b = box(1)
   const sum = computed(function () {
       let s = 0
       aCalc++
@@ -183,7 +185,7 @@ test.serial(`array classic loop`, function (t) {
   const start = now()
 
   t.is(1, aCalc)
-  for (let i = 0; i < 1000; i++) len.set(ar.push(observable.box(i)))
+  for (let i = 0; i < 1000; i++) len.set(ar.push(box(i)))
 
   t.is(499500, sumValue)
   t.is(1001, aCalc)

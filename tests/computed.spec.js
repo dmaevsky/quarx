@@ -1,5 +1,7 @@
 import test from 'ava';
-import { autorun, observable, computed } from '../index.js';
+import { autorun } from '../src/core.js';
+import { box } from '../src/box.js';
+import { computed } from '../src/computed.js';
 
 const computedLogged = log => (name, computation) => computed(() => {
   log.push(`computing ${name}`);
@@ -14,9 +16,9 @@ test('only recomputing hydrated computed', t => {
   const log = [];
   const calc = computedLogged(log);
 
-  const boxA = observable.box(false, { name: 'boxA' });
-  const boxB = observable.box(5, { name: 'boxB' });
-  const boxC = observable.box(6, { name: 'boxC' });
+  const boxA = box(false, { name: 'boxA' });
+  const boxB = box(5, { name: 'boxB' });
+  const boxC = box(6, { name: 'boxC' });
 
   const B = calc('B', () => boxB.get() * 10);
   const C = calc('C', () => boxC.get() * 10);
@@ -42,7 +44,7 @@ test('discovering a new dependency path, only recalculating what is needed along
   const log = [];
   const calc = computedLogged(log);
 
-  const A = observable.box(0);
+  const A = box(0);
   const B = calc('B', () => A.get() ? D.get() : 555);
   const C = calc('C', () => A.get() >= 0 ? 1 : -1);
   const D = calc('D', () => C.get() * 42);
@@ -60,8 +62,8 @@ test('discovering a new dependency path, only recalculating what is needed along
 });
 
 test('caches subcomputations', t => {
-  const a = observable.box(2, { name: 'boxA' });
-  const b = observable.box(3, { name: 'boxB' });
+  const a = box(2, { name: 'boxA' });
+  const b = box(3, { name: 'boxB' });
 
   let aRecomputed, bRecomputed, sumRecomputed;
 
@@ -82,8 +84,8 @@ test('caches subcomputations', t => {
 });
 
 test('circular deps with computed', t => {
-  const fa = observable.box(() => 5, { name: 'fa '});
-  const fb = observable.box(() => a.get() + 6, { name: 'fb'});
+  const fa = box(() => 5, { name: 'fa '});
+  const fb = box(() => a.get() + 6, { name: 'fb'});
 
   const a = computed(() => fa.get()(), { name: 'a' });
   const b = computed(() => fb.get()(), { name: 'b' });
