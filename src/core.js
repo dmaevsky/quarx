@@ -21,12 +21,12 @@ else globalThis[TAG] = {
 
 export const Quarx = globalThis[TAG];
 
-function tryCatch(fn, onError) {
+const tryCatch = (fn, onError) => (...args) => {
   try {
-    fn();
+    return fn(...args);
   }
   catch (e) {
-    onError(e);
+    return onError(e);
   }
 }
 
@@ -51,7 +51,7 @@ export function createAtom(onBecomeObserved, options = {}) {
         }
         else if (onBecomeObserved) {
           const cleanup = onBecomeObserved();
-          dispose = () => cleanup && tryCatch(cleanup, onError);
+          dispose = cleanup && tryCatch(cleanup, onError);
         }
       }
 
@@ -88,6 +88,8 @@ export function autorun(computation, options = {}) {
   const onError = options.onError || function(e) {
     Quarx.error(`[Quarx]: uncaught exception in ${name}:`, e);
   }
+
+  computation = tryCatch(computation, onError);
 
   let dependencies = new Set();
   let seqNo = 0, isRunning = false;
@@ -144,7 +146,7 @@ export function autorun(computation, options = {}) {
 
     Quarx.stack.push({ link, invalidate, actualize, name });
 
-    tryCatch(computation, onError);
+    computation();
 
     Quarx.stack.pop();
 
@@ -205,12 +207,14 @@ export function batch(fn) {
   hydrate();
 }
 
-export function untracked(fn) {
+export const untrack = fn => (...args) => {
   Quarx.stack.push({ name: '[untracked]' });
   try {
-    return fn();
+    return fn(...args);
   }
   finally {
     Quarx.stack.pop();
   }
 }
+
+export const untracked = thunk => untrack(thunk)();

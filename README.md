@@ -32,7 +32,7 @@ batch(() => {
   b.set(6);
 });
 
-console.log('Second update');
+console.log('Second update (no recalculation)');
 batch(() => {
   a.set(4);
   b.set(7);
@@ -43,7 +43,7 @@ batch(() => {
 // a + b = 3
 // First update
 // a + b = 11
-// Second update
+// Second update (no recalculation)
 ```
 
 ## Low-level concepts
@@ -61,12 +61,12 @@ During a single synchronous re-actualization (*hydration*) run of the DAG each c
 ```typescript
   type Disposer = () => void;
 
-  interface Atom {
+  type Atom = {
     reportObserved: () => boolean;
     reportChanged: () => void;
   }
 
-  export interface CoreOptions {
+  type CoreOptions = {
     name?: string;
     onError?: () => void;
   }
@@ -75,6 +75,7 @@ During a single synchronous re-actualization (*hydration*) run of the DAG each c
   export function autorun(computation: () => void, options?: CoreOptions): Disposer;
 
   export function batch(changes: () => void): void;
+  export function untrack<F extends Function>(fn: F): F
   export function untracked<T>(fn: () => T): T;
 ```
 #### NOTE
@@ -91,7 +92,7 @@ Using the primitives defined in the previous section one can construct observabl
 observable `box` and `computed` are two classical basic building blocks of a dependency graph.
 
 ```typescript
-  export interface ObservableOptions<T> {
+  type ObservableOptions<T> = {
     name?: string;
     equals?: (a: T, b: T) => boolean;
   }
@@ -109,14 +110,19 @@ Computed observables are lazy: if they don't have any observers they will unsubs
 
 All the observables' and atoms' names are for debug purposes only: they do not affect the execution logic.
 
-## Goals and non-goals
+## Adapters
+Quarx observables are trivially convertible to and from other popular reactivity mechanisms such as RxJS or Svelte stores.
+Btw, for the latter (called "subscribables" in Quarx lingo) the adapters are exposed in `quarx/adapters`
+```typescript
+  type Subscribable<R> = {
+    subscribe: (subscriber: (result: R) => void, onError?: (error: any) => void) => () => void;
+  }
+
+  export function fromObservable<R>(obs:  Observable<R>, options?: CoreOptions): Subscribable<R>;
+  export function toObservable<R>(subs: Subscribable<R>, options?: ObservableOptions<R>): Observable<R>;
+```
+
+## Notes
 The goal for Quarx is to remain a *dry essence* of a reactivity engine. As simple and tiny as it is, it is used in production at [ellx.io](https://ellx.io).
 
-Out of the box, Quarx is not designed to be a state management solution. However, it can be used in combination with [Tinyx](https://github.com/dmaevsky/tinyx) or even Redux. Just put the root store into a single `box`, and derive the rest of the state reactively with a network of `computed` selectors.
-
-**On a side note...**
-
-Converting an Observable to a Svelte store is a one-liner:
-```js
-const fromObservable = obs => ({ subscribe: subscriber => autorun(() => subscriber(obs.get())) });
-```
+Quarx can be use for state management, e.g. in combination with [Tinyx](https://github.com/dmaevsky/tinyx) or Redux. Just put the root store into a single `box`, and derive the rest of the state reactively with a network of `computed` selectors.

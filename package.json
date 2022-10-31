@@ -1,6 +1,6 @@
 {
   "name": "quarx",
-  "version": "5.0.0",
+  "version": "5.1.0",
   "description": "Simple tiny reactivity engine",
   "type": "module",
   "main": "src/core.js",
@@ -9,7 +9,8 @@
     ".": "./src/core.js",
     "./box": "./src/box.js",
     "./computed": "./src/computed.js",
-    "./map": "./src/map.js"
+    "./map": "./src/map.js",
+    "./adapters": "./src/adapters.js"
   },
   "types": "index.d.ts",
   "directories": {
@@ -20,7 +21,8 @@
     "perf": "ava -v --config test.perf.config.js --no-worker-threads --node-arguments='--expose-gc'"
   },
   "devDependencies": {
-    "ava": "^4.3.3"
+    "ava": "^4.3.3",
+    "tinyx": "^2.2.0"
   },
   "ava": {
     "files": [

@@ -8,26 +8,21 @@ export function computed(evaluate, options = {}) {
 
   let result, error;
 
-  const atom = createAtom(
-    () => autorun(computation, { name }),
-    { name: 'result:' + name }
-  );
+  function set(e, r) {
+    if (e && error === e) return;
+    if (!e && equals(result, r)) return;
 
-  function computation() {
-    try {
-      const value = evaluate();
-      if (!error && equals(result, value)) return;
-      result = value;
-      error = null;
-    }
-    catch (e) {
-      error = e;
-    }
+    [result, error] = [r, e];
     atom.reportChanged();
   }
 
+  const atom = createAtom(
+    () => autorun(() => set(null, evaluate()), { name, onError: set }),
+    { name: 'result:' + name }
+  );
+
   return {
-    get: () => {
+    get() {
       if (!atom.reportObserved()) {
         return evaluate();
       };
