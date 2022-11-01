@@ -1,11 +1,11 @@
 import { autorun, createAtom, untrack } from './core.js';
 
-export function fromObservable(obs, options = {}) {
+export function subscribable(evaluate, options = {}) {
   return {
-    subscribe(subscriber, onError = options.onError || console.error) {
-      return autorun(() => subscriber(obs.get()), {
+    subscribe(subscriber, onError = options.onError) {
+      return autorun(() => subscriber(evaluate()), {
         onError,
-        name: options.name || 'fromObservable'
+        name: options.name || 'subscribable'
       });
     }
   };
@@ -13,7 +13,7 @@ export function fromObservable(obs, options = {}) {
 
 export function get({ subscribe }) {
   let result, error;
-  const off = subscribe(value => result = value, e => error = e);
+  const off = subscribe(value => result = value, e => error = e, e => error = e);
   off();
   if (error) throw error;
   return result;
@@ -37,7 +37,7 @@ export function toObservable({ subscribe }, options = {}) {
     atom.reportChanged();
   }
 
-  const atom = createAtom(() => subscribe(r => set(null, r), set), { name });
+  const atom = createAtom(() => subscribe(r => set(null, r), set, set), { name });
 
   return {
     get() {

@@ -1,8 +1,7 @@
 import test from 'ava';
 import { autorun } from '../src/core.js';
-import { toObservable, fromObservable } from '../src/adapters.js';
+import { toObservable, subscribable } from '../src/adapters.js';
 import { box } from '../src/box.js'
-import { computed } from '../src/computed.js'
 import { writable } from 'tinyx';
 
 test('toObservable', t => {
@@ -17,7 +16,7 @@ test('toObservable', t => {
   off();
 });
 
-test('fromObservable', t => {
+test('subscribable', t => {
   const results = [], errors = [];
 
   function squareRoot(value) {
@@ -26,9 +25,8 @@ test('fromObservable', t => {
   }
 
   const number = box(4);
-  const sqrtNumber = computed(() => squareRoot(number.get()));
 
-  const { subscribe } = fromObservable(sqrtNumber);
+  const { subscribe } = subscribable(() => squareRoot(number.get()));
   const off = subscribe(r => results.push(r), e => errors.push(e));
 
   number.set(-1);

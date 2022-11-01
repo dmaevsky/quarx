@@ -115,10 +115,10 @@ Quarx observables are trivially convertible to and from other popular reactivity
 Btw, for the latter (called "subscribables" in Quarx lingo) the adapters are exposed in `quarx/adapters`
 ```typescript
   type Subscribable<R> = {
-    subscribe: (subscriber: (result: R) => void, onError?: (error: any) => void) => () => void;
+    subscribe: (subscriber: (result: R) => void, onError?: (error: any) => void, onStale?: (flow: unknown) => void) => () => void;
   }
 
-  export function fromObservable<R>(obs:  Observable<R>, options?: CoreOptions): Subscribable<R>;
+  export function subscribable<R>(computation: () => R, options?: CoreOptions): Subscribable<R>;
   export function toObservable<R>(subs: Subscribable<R>, options?: ObservableOptions<R>): Observable<R>;
 ```
 
