@@ -1,5 +1,5 @@
 import test from 'ava';
-import { autorun } from '../src/core.js';
+import { autorun, createAtom } from '../src/core.js';
 import { box } from '../src/box.js';
 import { computed } from '../src/computed.js';
 
@@ -107,4 +107,34 @@ test('circular deps with computed', t => {
   t.is(val.message, '[Quarx]: Circular dependency detected: a -> b -> a');
 
   off();
+});
+
+test('atom is not unobserved if picked up by another computation during the same hydration', t => {
+  const logs = [];
+
+  const atom1 = createAtom(() => {
+    logs.push('1 observed');
+    return () => logs.push('1 unobserved');
+  });
+
+  const atom2 = createAtom(() => {
+    logs.push('2 observed, no dispose callback');
+  });
+
+  const latch = box(true);
+
+  const c1 = computed(() => latch.get() && [atom1, atom2].map(a => a.reportObserved()));
+  const c2 = computed(() => !latch.get() && [atom1, atom2].map(a => a.reportObserved()));
+
+  const off = autorun(() => logs.push([c1.get(), c2.get()]));
+  latch.set(false);
+  off();
+
+  t.deepEqual(logs, [
+    '1 observed',
+    '2 observed, no dispose callback',
+    [[true, true], false],
+    [false, [true, true]],
+    '1 unobserved',
+  ]);
 });

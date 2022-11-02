@@ -51,7 +51,7 @@ export function createAtom(onBecomeObserved, options = {}) {
         }
         else if (onBecomeObserved) {
           const cleanup = onBecomeObserved();
-          dispose = cleanup && tryCatch(cleanup, onError);
+          dispose = tryCatch(() => cleanup && cleanup(), onError);
         }
       }
 
