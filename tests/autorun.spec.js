@@ -47,9 +47,7 @@ test('untracked', t => {
   dispose();
 });
 
-test('computation invalidating itself is not considered circular unless it is later invalidated by something else', t => {
-  // Not sure this is the correct behavior, but it is in line with the logic that
-  // when a computation finishes calculating it is considered "actualized"
+test('never create self dependencies', t => {
   const a = box(1);
   const values = [];
 
@@ -65,25 +63,24 @@ test('computation invalidating itself is not considered circular unless it is la
   dispose();
 });
 
-test('detect self dependency', t => {
+test('never create self dependencies, with additional invalidation', t => {
   const a = box(1);
-  const b = box(55);
-  let err;
-  const onError = e => err = e.message;
+  const b = box(50);
 
   const dispose = autorun(() => {
     a.set(a.get() + b.get());
-  }, { name: 'set_a', onError });
+  }, { name: 'set_a' });
 
-  b.set(66);
+  t.is(a.get(), 51);
+  b.set(9);
+  t.is(a.get(), 60);
 
-  t.is(err, '[Quarx]: Circular dependency detected: set_a -> set_a');
   dispose();
 });
 
 test('detect circular dependencies', t => {
-  const a = box(1);
-  const b = box(1);
+  const a = box(1, { name: 'a' });
+  const b = box(1, { name: 'b' });
 
   let err;
   const onError = e => err = e.message;
@@ -92,6 +89,25 @@ test('detect circular dependencies', t => {
   const dispose2 = autorun(() => b.set(a.get() + 1), { name: 'set_b', onError });
 
   t.is(err, '[Quarx]: Circular dependency detected: set_a -> set_b -> set_a');
+  dispose1();
+  dispose2();
+});
+
+test('detect circular dependencies appearing after the first invalidation', t => {
+  const latch = box(false, { name: 'latch' });
+  const a = box(1, { name: 'a' });
+  const b = box(1, { name: 'b' });
+
+  let err;
+  const onError = e => err = e.message;
+
+  const dispose1 = autorun(() => latch.get() && a.set(b.get() + 1), { name: 'set_a', onError });
+  const dispose2 = autorun(() => latch.get() && b.set(a.get() + 1), { name: 'set_b', onError });
+
+  t.is(err, undefined);
+  latch.set(true);
+
+  t.is(err, '[Quarx]: Circular dependency detected: set_b -> set_a -> set_b');
   dispose1();
   dispose2();
 });

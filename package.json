@@ -1,6 +1,6 @@
 {
   "name": "quarx",
-  "version": "5.2.1",
+  "version": "5.2.2",
   "description": "Simple tiny reactivity engine",
   "type": "module",
   "main": "src/core.js",

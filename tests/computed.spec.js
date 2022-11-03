@@ -138,3 +138,19 @@ test('atom is not unobserved if picked up by another computation during the same
     '1 unobserved',
   ]);
 });
+
+test('another circular dependency detection with computed', t => {
+  const latch = box(false, { name: 'latch'});
+  const c1 = computed(() => c2.get(), { name: 'c1' });
+  const c2 = computed(() => latch.get() && c1.get(), { name: 'c2' });
+
+  let err;
+
+  const off = autorun(() => c1.get(), { onError: e => err = e });
+  latch.set(true);
+
+  t.true(err instanceof Error);
+  t.is(err.message, '[Quarx]: Circular dependency detected: c2 -> c1 -> c2');
+
+  off();
+});

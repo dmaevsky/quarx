@@ -1,4 +1,4 @@
-import { autorun, createAtom, untrack } from './core.js';
+import { autorun, createAtom } from './core.js';
 
 export function subscribable(evaluate, options = {}) {
   return {
@@ -24,8 +24,6 @@ export function toObservable({ subscribe }, options = {}) {
     name = 'toObservable',
     equals = (a, b) => a === b
   } = options;
-
-  subscribe = untrack(subscribe);
 
   let result, error;
 

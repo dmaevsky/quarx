@@ -37,15 +37,35 @@ export function createAtom(onBecomeObserved, options = {}) {
   }
 
   const observers = new Map();
-  let dispose, actualize;
+  let dispose, pullUpstream;
 
   return {
     reportObserved() {
-      Quarx.debug(`[Quarx]: ${name} observed`);
       const { invalidate, link } = Quarx.stack[Quarx.stack.length - 1] || {};
+
+      Quarx.debug(`[Quarx]: ${name} observed -> ${!!invalidate}`);
       if (!invalidate) return false;
 
-      if (!observers.size) {
+      const unobserved = !observers.size;
+
+      // Important to add the new observer before calling onBecomeObserved, because the latter may call reportChanged
+      // as is the case with `toObservable` implementation
+
+      if (!observers.has(invalidate)) {
+        observers.set(invalidate, {
+          unlink() {
+            observers.delete(invalidate);
+            if (!observers.size && dispose) Quarx.pendingDispose.add(dispose);
+          },
+          actualize() {
+            if (pullUpstream) pullUpstream();
+          }
+        });
+      }
+
+      link(observers.get(invalidate));
+
+      if (unobserved) {
         if (dispose && Quarx.pendingDispose.has(dispose)) {
           Quarx.pendingDispose.delete(dispose);
         }
@@ -55,29 +75,20 @@ export function createAtom(onBecomeObserved, options = {}) {
         }
       }
 
-      if (!observers.has(invalidate)) {
-        observers.set(invalidate, {
-          unlink() {
-            observers.delete(invalidate);
-            if (!observers.size && dispose) Quarx.pendingDispose.add(dispose);
-          },
-          actualize() {
-            if (actualize) actualize();
-          }
-        });
-      }
-
-      link(observers.get(invalidate));
-
-      if (actualize) actualize();
+      if (pullUpstream) pullUpstream();
       return true;
     },
 
     reportChanged() {
       Quarx.debug(`[Quarx]: ${name} changed`);
-      ({ actualize } = Quarx.stack[Quarx.stack.length - 1] || {});
-      for (let invalidate of observers.keys()) invalidate();
+      const { invalidate, actualize } = Quarx.stack[Quarx.stack.length - 1] || {};
 
+      // Prevent creating self-reference for the running computation
+      if (!observers.has(invalidate)) {
+        pullUpstream = actualize;
+      }
+
+      for (let invalidate of observers.keys()) invalidate();
       hydrate();
     }
   }
@@ -97,13 +108,20 @@ export function autorun(computation, options = {}) {
   const link = dep => dependencies.add(dep);
 
   function invalidate() {
+    Quarx.debug(`[Quarx]: invalidating ${name}:`, seqNo, Quarx.sequenceNumber);
+
     if (Quarx.cleaningUp) {
       // No invalidations allowed in dispose callbacks
-      return Quarx.error(`[Quarx]: prevent invalidating ${name} while running the dispose queue`);
+      const message = `[Quarx]: attempt to invalidate ${name} while running the dispose queue`;
+      Quarx.debug(message);
+
+      return onError(new Error(message));
     }
     if (Quarx.hydrating && seqNo === Quarx.sequenceNumber) {
-      // Invalidating a freshly hydrated computation == cycle, but cannot throw here yet, because we don't have the stack to report
-      return Quarx.error(`[Quarx]: prevent invalidating ${name}: cycle detected`);
+      Quarx.debug(`[Quarx]: Invalidating a freshly hydrated computation ${name} from ${Quarx.stack[0].name} === cycle`);
+
+      // Calling run greadily so that it can report the cycle
+      return run();
     }
 
     seqNo = 0;
@@ -111,12 +129,15 @@ export function autorun(computation, options = {}) {
   }
 
   function actualize() {
+    Quarx.debug(`[Quarx]: Actualizing ${name}`, seqNo, Quarx.sequenceNumber);
+
     if (isRunning) {
       const trace = [...Quarx.stack.map(({ name }) => name), name];
       const message = `[Quarx]: Circular dependency detected: ${trace.join(' -> ')}`;
       Quarx.debug(message);
       throw new Error(message);
     }
+
     if (seqNo === Quarx.sequenceNumber) return;
     if (!seqNo) return run();
 
