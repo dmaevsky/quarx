@@ -33,7 +33,7 @@ const tryCatch = (fn, onError) => (...args) => {
 export function createAtom(onBecomeObserved, options = {}) {
   const { name = 'atom' } = options;
   const onError = options.onError || function(e) {
-    Quarx.error(`[Quarx]: uncaught exception disposing ${name}:`, e);
+    Quarx.error('[Quarx ERROR]', 'unhandled @ atom dispose', name, e);
   }
 
   const observers = new Map();
@@ -41,9 +41,9 @@ export function createAtom(onBecomeObserved, options = {}) {
 
   return {
     reportObserved() {
-      const { invalidate, link } = Quarx.stack[Quarx.stack.length - 1] || {};
+      const { invalidate, link, name: fromName } = Quarx.stack[Quarx.stack.length - 1] || {};
 
-      Quarx.debug(`[Quarx]: ${name} observed -> ${!!invalidate}`);
+      Quarx.debug('[Quarx]', 'observed', name, fromName);
       if (!invalidate) return false;
 
       const unobserved = !observers.size;
@@ -80,8 +80,8 @@ export function createAtom(onBecomeObserved, options = {}) {
     },
 
     reportChanged() {
-      Quarx.debug(`[Quarx]: ${name} changed`);
-      const { invalidate, actualize } = Quarx.stack[Quarx.stack.length - 1] || {};
+      const { invalidate, actualize, name: fromName } = Quarx.stack[Quarx.stack.length - 1] || {};
+      Quarx.debug('[Quarx]', 'changed', name, fromName);
 
       // Prevent creating self-reference for the running computation
       if (!observers.has(invalidate)) {
@@ -96,32 +96,42 @@ export function createAtom(onBecomeObserved, options = {}) {
 
 export function autorun(computation, options = {}) {
   const { name = 'autorun' } = options;
-  const onError = options.onError || function(e) {
-    Quarx.error(`[Quarx]: uncaught exception in ${name}:`, e);
+  const pushError = options.onError || function(e) {
+    Quarx.error('[Quarx ERROR]', 'unhandled @ computation', name, e);
+  }
+
+  const onError = e => {
+    // never call the error handler twice in the same hydration
+    if (seqNoError === Quarx.sequenceNumber) return;
+
+    seqNoError = Quarx.sequenceNumber;
+    pushError(e);
   }
 
   computation = tryCatch(computation, onError);
 
   let dependencies = new Set();
-  let seqNo = 0, isRunning = false;
+  let seqNo = 0, seqNoError = 0, isRunning = false;
 
   const link = dep => dependencies.add(dep);
 
   function invalidate() {
-    Quarx.debug(`[Quarx]: invalidating ${name}:`, seqNo, Quarx.sequenceNumber);
+    if (isRunning) return;
+
+    Quarx.debug('[Quarx]', 'invalidate', name, seqNo, Quarx.sequenceNumber);
 
     if (Quarx.cleaningUp) {
       // No invalidations allowed in dispose callbacks
-      const message = `[Quarx]: attempt to invalidate ${name} while running the dispose queue`;
-      Quarx.debug(message);
+      const args = ['[Quarx ERROR]', 'invalidate at dispose', name];
+      Quarx.error(...args);
 
-      return onError(new Error(message));
+      return onError(new Error(args.join(':')));
     }
     if (Quarx.hydrating && seqNo === Quarx.sequenceNumber) {
-      Quarx.debug(`[Quarx]: Invalidating a freshly hydrated computation ${name} from ${Quarx.stack[0].name} === cycle`);
+      const args = ['[Quarx ERROR]', 'invalidate hydrated', name, Quarx.stack[Quarx.stack.length - 1].name];
+      Quarx.error(...args);
 
-      // Calling run greadily so that it can report the cycle
-      return run();
+      return onError(new Error(args.join(':')));
     }
 
     seqNo = 0;
@@ -129,13 +139,13 @@ export function autorun(computation, options = {}) {
   }
 
   function actualize() {
-    Quarx.debug(`[Quarx]: Actualizing ${name}`, seqNo, Quarx.sequenceNumber);
+    Quarx.debug('[Quarx]', 'actualize', name, seqNo, Quarx.sequenceNumber);
 
     if (isRunning) {
-      const trace = [...Quarx.stack.map(({ name }) => name), name];
-      const message = `[Quarx]: Circular dependency detected: ${trace.join(' -> ')}`;
-      Quarx.debug(message);
-      throw new Error(message);
+      const args = ['[Quarx ERROR]', 'cycle detected', ...Quarx.stack.map(({ name }) => name), name];
+      Quarx.error(...args);
+
+      throw new Error(args.join(':'));
     }
 
     if (seqNo === Quarx.sequenceNumber) return;
@@ -159,7 +169,7 @@ export function autorun(computation, options = {}) {
   }
 
   function run() {
-    Quarx.debug(`[Quarx]: Running ${name}`, Quarx.sequenceNumber);
+    Quarx.debug('[Quarx]', 'run', name, Quarx.sequenceNumber);
     isRunning = true;
 
     const previousDeps = dependencies;
@@ -179,7 +189,7 @@ export function autorun(computation, options = {}) {
     Quarx.invalidated.delete(run);
     seqNo = Quarx.sequenceNumber;
     isRunning = false;
-    Quarx.debug(`[Quarx]: Finished ${name}`, Quarx.sequenceNumber);
+    Quarx.debug('[Quarx]', 'finished', name, Quarx.sequenceNumber);
   }
 
   function off() {
@@ -206,7 +216,7 @@ function hydrate() {
   if (Quarx.hydrating || Quarx.cleaningUp || Quarx.batchDepth || !Quarx.invalidated.size) return;
 
   ++Quarx.sequenceNumber;
-  Quarx.debug(`[Quarx]: Hydration ${Quarx.sequenceNumber}`);
+  Quarx.debug('[Quarx]', 'hydration start', Quarx.sequenceNumber);
 
   Quarx.hydrating = true;
   for (let run of Quarx.invalidated) run();
@@ -214,7 +224,7 @@ function hydrate() {
 
   collectUnobserved();
 
-  Quarx.debug(`[Quarx]: Hydration ${Quarx.sequenceNumber} END`);
+  Quarx.debug('[Quarx]', 'hydration end', Quarx.sequenceNumber);
 }
 
 export function batch(fn) {

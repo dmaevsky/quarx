@@ -56,7 +56,7 @@ A *computation* is simply a thunk - a parameterless function. Computations are l
 - When `atom.reportObserved()` is called, it first makes sure that all computations in the atom's upstream sub-graph are up to date before returning control
 - `autorun(computation)` creates a computation, immediately executes it, and subsequently re-runs it each time any of the atoms reported observed during the last execution change
 
-During a single synchronous re-actualization (*hydration*) run of the DAG each computation would be executed at most once.
+During a single synchronous re-actualization (*hydration*) run of the DAG each computation would be executed at most once. If the computation throws or if a dependency cycle is detected the `onError` callback is invoked, at most once per hydration.
 
 ```typescript
   type Disposer = () => void;

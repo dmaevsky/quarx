@@ -1,7 +1,15 @@
 import test from 'ava';
-import { autorun, createAtom } from '../src/core.js';
+import { autorun, createAtom, Quarx } from '../src/core.js';
 import { box } from '../src/box.js';
 import { computed } from '../src/computed.js';
+
+const QuarxMute = fn => (...args) => {
+  const original = Quarx.error;
+  Quarx.error = () => {};
+  const result = fn(...args);
+  Quarx.error = original;
+  return result;
+}
 
 const computedLogged = log => (name, computation) => computed(() => {
   log.push(`computing ${name}`);
@@ -83,31 +91,26 @@ test('caches subcomputations', t => {
   t.false(bRecomputed);
 });
 
-test('circular deps with computed', t => {
+test('circular deps with computed', QuarxMute(t => {
   const fa = box(() => 5, { name: 'fa '});
   const fb = box(() => a.get() + 6, { name: 'fb'});
 
   const a = computed(() => fa.get()(), { name: 'a' });
   const b = computed(() => fb.get()(), { name: 'b' });
 
-  let val;
-  const off = autorun(() => {
-    try {
-      val = b.get();
-    }
-    catch (e) {
-      val = e;
-    }
-  });
+  const values = [], errors = [];
 
-  t.is(val, 11);
+  const off = autorun(() => values.push(b.get()), { onError: e => errors.push(e.message) });
+
+  t.deepEqual(values, [11]);
+  t.is(errors.length, 0);
+
   fa.set(() => b.get());
 
-  t.true(val instanceof Error);
-  t.is(val.message, '[Quarx]: Circular dependency detected: a -> b -> a');
+  t.deepEqual(errors, ['[Quarx ERROR]:cycle detected:a:b:a']);
 
   off();
-});
+}));
 
 test('atom is not unobserved if picked up by another computation during the same hydration', t => {
   const logs = [];
@@ -139,10 +142,11 @@ test('atom is not unobserved if picked up by another computation during the same
   ]);
 });
 
-test('another circular dependency detection with computed', t => {
+test('another circular dependency detection with computed', QuarxMute(t => {
   const latch = box(false, { name: 'latch'});
-  const c1 = computed(() => c2.get(), { name: 'c1' });
-  const c2 = computed(() => latch.get() && c1.get(), { name: 'c2' });
+  const c1 = computed(() => latch.get() && c2.get(), { name: 'c1' });
+  const c2 = computed(() => latch.get() && c3.get(), { name: 'c2' });
+  const c3 = computed(() => latch.get() && c1.get(), { name: 'c3' });
 
   let err;
 
@@ -150,7 +154,7 @@ test('another circular dependency detection with computed', t => {
   latch.set(true);
 
   t.true(err instanceof Error);
-  t.is(err.message, '[Quarx]: Circular dependency detected: c2 -> c1 -> c2');
+  t.is(err.message, '[Quarx ERROR]:cycle detected:c1:c2:c3:c1');
 
   off();
-});
+}));

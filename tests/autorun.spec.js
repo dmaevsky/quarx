@@ -1,6 +1,14 @@
 import test from 'ava';
-import { autorun, batch, untracked, createAtom } from '../src/core.js';
+import { autorun, batch, untracked, createAtom, Quarx } from '../src/core.js';
 import { box } from '../src/box.js';
+
+const QuarxMute = fn => (...args) => {
+  const original = Quarx.error;
+  Quarx.error = () => {};
+  const result = fn(...args);
+  Quarx.error = original;
+  return result;
+}
 
 test('autorun stops running after disposed', t => {
   const a = box(1);
@@ -78,39 +86,47 @@ test('never create self dependencies, with additional invalidation', t => {
   dispose();
 });
 
-test('detect circular dependencies', t => {
+test('detect circular dependencies', QuarxMute(t => {
   const a = box(1, { name: 'a' });
   const b = box(1, { name: 'b' });
 
-  let err;
-  const onError = e => err = e.message;
+  const errors = [];
+  const onError = e => errors.push(e.message);
 
   const dispose1 = autorun(() => a.set(b.get() + 1), { name: 'set_a', onError });
   const dispose2 = autorun(() => b.set(a.get() + 1), { name: 'set_b', onError });
 
-  t.is(err, '[Quarx]: Circular dependency detected: set_a -> set_b -> set_a');
+  t.deepEqual(errors, [
+    '[Quarx ERROR]:cycle detected:set_a:set_b:set_a'
+  ]);
   dispose1();
   dispose2();
-});
+}));
 
-test('detect circular dependencies appearing after the first invalidation', t => {
+test('detect circular dependencies appearing after the first invalidation', QuarxMute(t => {
   const latch = box(false, { name: 'latch' });
   const a = box(1, { name: 'a' });
   const b = box(1, { name: 'b' });
+  const c = box(1, { name: 'c' });
 
-  let err;
-  const onError = e => err = e.message;
+  const errors = [];
+  const onError = e => errors.push(e.message);
 
   const dispose1 = autorun(() => latch.get() && a.set(b.get() + 1), { name: 'set_a', onError });
-  const dispose2 = autorun(() => latch.get() && b.set(a.get() + 1), { name: 'set_b', onError });
+  const dispose2 = autorun(() => latch.get() && b.set(c.get() + 1), { name: 'set_b', onError });
+  const dispose3 = autorun(() => latch.get() && c.set(a.get() + 1), { name: 'set_c', onError });
 
-  t.is(err, undefined);
+  t.is(errors.length, 0);
   latch.set(true);
 
-  t.is(err, '[Quarx]: Circular dependency detected: set_b -> set_a -> set_b');
+  t.deepEqual(errors, [
+    '[Quarx ERROR]:invalidate hydrated:set_a:set_b',
+    '[Quarx ERROR]:invalidate hydrated:set_b:set_c'
+  ]);
   dispose1();
   dispose2();
-});
+  dispose3();
+}));
 
 test('first computation run invalidation', t => {
   const b = box(5);

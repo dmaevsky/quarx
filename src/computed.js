@@ -7,5 +7,5 @@ export function computed(evaluate, options = {}) {
   } = options;
 
   const subs = subscribable(evaluate, { name });
-  return toObservable(subs, { name: 'result:' + name, equals });
+  return toObservable(subs, { name: `(computed ${name})`, equals });
 }
