@@ -153,3 +153,20 @@ test('greedy cleanup when disposing an autorun from another', t => {
 
   off2();
 });
+
+test('when a computation disposes itself the unobserved handlers are only called once', t => {
+  const b = box(false);
+  const logs = [];
+
+  const a = createAtom(() => () => logs.push('unobserved'));
+
+  const off = autorun(() => {
+    a.reportObserved();
+    if (b.get()) off();
+  });
+
+  t.is(logs.length, 0);
+
+  b.set(true);
+  t.deepEqual(logs, ['unobserved']);
+});
