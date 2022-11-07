@@ -120,8 +120,8 @@ test('detect circular dependencies appearing after the first invalidation', Quar
   latch.set(true);
 
   t.deepEqual(errors, [
-    '[Quarx ERROR]:invalidate hydrated:set_a:set_b',
-    '[Quarx ERROR]:invalidate hydrated:set_b:set_c'
+    '[Quarx ERROR]:invalidate hydrated:set_a',
+    '[Quarx ERROR]:invalidate hydrated:set_b'
   ]);
   dispose1();
   dispose2();

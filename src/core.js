@@ -128,10 +128,14 @@ export function autorun(computation, options = {}) {
       return onError(new Error(args.join(':')));
     }
     if (Quarx.hydrating && seqNo === Quarx.sequenceNumber) {
-      const args = ['[Quarx ERROR]', 'invalidate hydrated', name, Quarx.stack[Quarx.stack.length - 1].name];
+      const args = ['[Quarx ERROR]', 'invalidate hydrated', name];
       Quarx.error(...args);
 
       return onError(new Error(args.join(':')));
+    }
+
+    if (options.once) {
+      return Quarx.invalidated.add(onError);
     }
 
     seqNo = 0;
@@ -222,6 +226,7 @@ function hydrate() {
   for (let run of Quarx.invalidated) run();
   Quarx.hydrating = false;
 
+  Quarx.invalidated.clear();
   collectUnobserved();
 
   Quarx.debug('[Quarx]', 'hydration end', Quarx.sequenceNumber);
