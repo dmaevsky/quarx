@@ -13,8 +13,10 @@ export function subscribable(evaluate, options = {}) {
 
 export function get({ subscribe }) {
   let result, error;
-  const off = subscribe(value => result = value, e => error = e, e => error = e);
-  off();
+
+  const off = subscribe(value => {result = value}, e => {error = e}, e => {error = e});
+  if (off) off();
+
   if (error) throw error;
   return result;
 }
@@ -25,7 +27,7 @@ export function toObservable({ subscribe }, options = {}) {
     equals = (a, b) => a === b
   } = options;
 
-  let result, error;
+  let result, error, subscribed = false;
 
   function set(e, r) {
     if (e && error === e) return;
@@ -35,11 +37,22 @@ export function toObservable({ subscribe }, options = {}) {
     atom.reportChanged();
   }
 
-  const atom = createAtom(() => subscribe(r => set(null, r), set, set), { name });
+  function start() {
+    const off = subscribe(r => set(null, r), set, set);
+    subscribed = true;
+
+    return () => {
+      if (off) off();
+      subscribed = false;
+    }
+  }
+
+  const atom = createAtom(start, { name });
 
   return {
     get() {
-      if (!atom.reportObserved()) {
+      atom.reportObserved();
+      if (!subscribed) {
         return get({ subscribe });
       }
       if (error) throw error;
