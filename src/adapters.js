@@ -2,7 +2,7 @@ import { autorun, createAtom } from './core.js';
 
 export function subscribable(evaluate, options = {}) {
   return {
-    subscribe(subscriber, onError = options.onError) {
+    subscribe(subscriber, onError = options.onError || console.error) {
       return autorun(() => subscriber(evaluate()), {
         onError,
         name: options.name || 'subscribable'
