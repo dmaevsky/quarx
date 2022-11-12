@@ -18,7 +18,7 @@ const computedLogged = log => (name, computation) => computed(() => {
   return result;
 }, { name });
 
-test('only recomputing hydrated computed', t => {
+test('only recomputing hydrated computed', async t => {
   const log = [];
   const calc = computedLogged(log);
 
@@ -42,11 +42,11 @@ test('only recomputing hydrated computed', t => {
   boxB.set(9);
   boxC.set(10);
 
-  snapshot(log, t.name);
+  await snapshot(log, t.name);
   off();
 });
 
-test('discovering a new dependency path, only recalculating what is needed along it', t => {
+test('discovering a new dependency path, only recalculating what is needed along it', async t => {
   const log = [];
   const calc = computedLogged(log);
 
@@ -63,7 +63,7 @@ test('discovering a new dependency path, only recalculating what is needed along
   log.push('===');
   A.set(1);
 
-  snapshot(log, t.name);
+  await snapshot(log, t.name);
   off();
 });
 
