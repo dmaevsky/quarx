@@ -1,0 +1,15 @@
+- - computing B
+  - B = 555
+  - "autorun: B = 555"
+  - computing D
+  - computing C
+  - C = 1
+  - D = 42
+  - "autorun: D = 42"
+  - ===
+  - computing B
+  - computing C
+  - C = 1
+  - B = 42
+  - "autorun: B = 42"
+  - "autorun: D = 42"

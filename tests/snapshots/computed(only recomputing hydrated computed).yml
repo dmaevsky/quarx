@@ -1,0 +1,13 @@
+- - computing C
+  - C = 60
+  - "autorun: 60"
+  - computing C
+  - C = 80
+  - "autorun: 80"
+  - ===
+  - computing B
+  - B = 70
+  - "autorun: 70"
+  - computing B
+  - B = 90
+  - "autorun: 90"

@@ -1,8 +1,3 @@
-.vscode
 !.gitignore
-
-# dependencies
-/node_modules
-
-# distribution (npm)
-/dist
+.vscode
+node_modules

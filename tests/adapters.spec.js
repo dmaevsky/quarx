@@ -1,10 +1,12 @@
-import test from 'ava';
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
 import { autorun } from '../src/core.js';
 import { toObservable, subscribable } from '../src/adapters.js';
 import { box } from '../src/box.js'
 import { writable } from 'tinyx';
 
-test('toObservable', t => {
+test('toObservable', () => {
   const w = writable(42);
   const obs = toObservable(w);
   const results = [];
@@ -12,11 +14,11 @@ test('toObservable', t => {
   const off = autorun(() => results.push(obs.get()));
   w.set(55);
 
-  t.deepEqual(results, [42, 55]);
+  assert.deepEqual(results, [42, 55]);
   off();
 });
 
-test('subscribable', t => {
+test('subscribable', () => {
   const results = [], errors = [];
 
   function squareRoot(value) {
@@ -33,11 +35,11 @@ test('subscribable', t => {
   number.set(9);
   off();
 
-  t.deepEqual(errors, ['-1 is negative']);
-  t.deepEqual(results, [2, 3]);
+  assert.deepEqual(errors, ['-1 is negative']);
+  assert.deepEqual(results, [2, 3]);
 });
 
-test('toObservable when not observed', t => {
+test('toObservable when not observed', () => {
   let subsCount = 0;
   const subs = { subscribe: subscriber => subscriber(42 + subsCount++) };
 
@@ -45,10 +47,10 @@ test('toObservable when not observed', t => {
 
   const off = autorun(() => obs.get());
 
-  t.is(obs.get(), 42);
-  t.is(obs.get(), 42);
+  assert.equal(obs.get(), 42);
+  assert.equal(obs.get(), 42);
   off();
 
-  t.is(obs.get(), 43);
-  t.is(obs.get(), 44);
+  assert.equal(obs.get(), 43);
+  assert.equal(obs.get(), 44);
 });

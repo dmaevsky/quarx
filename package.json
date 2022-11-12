@@ -13,22 +13,14 @@
     "./adapters": "./src/adapters.js"
   },
   "types": "index.d.ts",
-  "directories": {
-    "test": "tests"
-  },
   "scripts": {
-    "test": "ava -v",
-    "perf": "ava -v --config test.perf.config.js --no-worker-threads --node-arguments='--expose-gc'"
+    "test": "find tests -type f -name '*.spec.js' -exec echo \\# utap-src:{} \\; -exec node {} \\; | utap",
+    "perf": "node --expose-gc tests_perf/perf.spec.js | utap"
   },
   "devDependencies": {
-    "ava": "^4.3.3",
-    "tinyx": "^2.2.0"
-  },
-  "ava": {
-    "files": [
-      "**/*.spec.js",
-      "!tests/perf.spec.js"
-    ]
+    "tinyx": "^2.2.0",
+    "usnap": "^0.1.0",
+    "utap": "^0.1.2"
   },
   "repository": {
     "type": "git",

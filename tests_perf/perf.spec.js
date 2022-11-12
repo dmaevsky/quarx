@@ -1,4 +1,6 @@
-import test from 'ava';
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
 import { autorun } from '../src/core.js';
 import { box } from '../src/box.js';
 import { computed } from '../src/computed.js';
@@ -16,7 +18,7 @@ function now() {
 
 const log = console.log;
 
-test.serial(`one observes ten thousand that observe one`, function (t) {
+test(`one observes ten thousand that observe one`, () => {
   gc()
   const a = box(2);
 
@@ -45,13 +47,13 @@ test.serial(`one observes ten thousand that observe one`, function (t) {
 
   autorun(() => {
     const bVal = b.get();
-    t.is(49995000 * (bCalcs + 1), bVal);
+    assert.equal(49995000 * (bCalcs + 1), bVal);
   });
 
   const initial = now()
 
   a.set(3)
-  t.is(2, bCalcs);
+  assert.equal(2, bCalcs);
   const end = now()
 
   log(
@@ -63,7 +65,7 @@ test.serial(`one observes ten thousand that observe one`, function (t) {
   )
 });
 
-test.serial(`five hundrend properties that observe their sibling`, function (t) {
+test(`five hundrend properties that observe their sibling`, () => {
   gc()
   let n = 500;
   const observables = [box(1)]
@@ -84,7 +86,7 @@ test.serial(`five hundrend properties that observe their sibling`, function (t) 
   let first = 1;
 
   autorun(() => {
-    t.is(n + first++, last.get());
+    assert.equal(n + first++, last.get());
   })
 
   const initial = now()
@@ -101,7 +103,7 @@ test.serial(`five hundrend properties that observe their sibling`, function (t) 
   )
 });
 
-test.serial(`late dependency change`, function (t) {
+test(`late dependency change`, () => {
   gc()
   const values = []
   for (let i = 0; i < 100; i++) values.push(box(0))
@@ -118,11 +120,11 @@ test.serial(`late dependency change`, function (t) {
 
   for (let i = 0; i < 10000; i++) values[99].set(i)
 
-  t.is(sum.get(), 9999)
+  assert.equal(sum.get(), 9999)
   log("Late dependency change - Updated in " + (new Date() - start) + "ms.")
 })
 
-test.serial(`array reduce`, function (t) {
+test(`array reduce`, () => {
   gc()
   let aCalc = 0
   const ar = box([])
@@ -143,8 +145,8 @@ test.serial(`array reduce`, function (t) {
 
   for (let i = 0; i < 1000; i++) ar.set([...ar.get(), i])
 
-  t.is(499500, sumValue)
-  t.is(1001, aCalc)
+  assert.equal(499500, sumValue)
+  assert.equal(1001, aCalc)
   aCalc = 0
 
   const initial = now()
@@ -152,8 +154,8 @@ test.serial(`array reduce`, function (t) {
   for (let i = 0; i < 1000; i++) ar.set(Object.assign([...ar.get()], { [i]: ar.get()[i] * 2 }))
   b.set(2)
 
-  t.is(1998000, sumValue)
-  t.is(1001, aCalc)
+  assert.equal(1998000, sumValue)
+  assert.equal(1001, aCalc)
 
   const end = now()
 
@@ -166,7 +168,7 @@ test.serial(`array reduce`, function (t) {
   )
 })
 
-test.serial(`array classic loop`, function (t) {
+test(`array classic loop`, () => {
   gc()
   const ar = []
   const len = box(0)
@@ -184,11 +186,11 @@ test.serial(`array classic loop`, function (t) {
 
   const start = now()
 
-  t.is(1, aCalc)
+  assert.equal(1, aCalc)
   for (let i = 0; i < 1000; i++) len.set(ar.push(box(i)))
 
-  t.is(499500, sumValue)
-  t.is(1001, aCalc)
+  assert.equal(499500, sumValue)
+  assert.equal(1001, aCalc)
 
   const initial = now()
   aCalc = 0
@@ -196,8 +198,8 @@ test.serial(`array classic loop`, function (t) {
   for (let i = 0; i < 1000; i++) ar[i].set(ar[i].get() * 2)
   b.set(2)
 
-  t.is(1998000, sumValue)
-  t.is(1000, aCalc)
+  assert.equal(1998000, sumValue)
+  assert.equal(1000, aCalc)
 
   const end = now()
 

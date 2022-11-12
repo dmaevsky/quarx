@@ -1,16 +1,10 @@
-import test from 'ava';
-import { autorun, batch, untracked, createAtom, Quarx } from '../src/core.js';
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import { autorun, batch, untracked, createAtom } from '../src/core.js';
 import { box } from '../src/box.js';
 
-const QuarxMute = fn => (...args) => {
-  const original = Quarx.error;
-  Quarx.error = () => {};
-  const result = fn(...args);
-  Quarx.error = original;
-  return result;
-}
-
-test('autorun stops running after disposed', t => {
+test('autorun stops running after disposed', () => {
   const a = box(1);
   const values = [];
 
@@ -22,10 +16,10 @@ test('autorun stops running after disposed', t => {
   a.set(3);
   a.set(4);
 
-  t.deepEqual(values, [1, 2]);
+  assert.deepEqual(values, [1, 2]);
 });
 
-test('batched updates', t => {
+test('batched updates', () => {
   const a = box(1);
   const b = box(2);
   const values = [];
@@ -37,11 +31,11 @@ test('batched updates', t => {
     b.set(6);
   });
 
-  t.deepEqual(values, [3, 11]);
+  assert.deepEqual(values, [3, 11]);
   dispose();
 });
 
-test('untracked', t => {
+test('untracked', () => {
   const a = box(1);
   const b = box(2);
   const values = [];
@@ -51,11 +45,11 @@ test('untracked', t => {
   a.set(5);
   b.set(6);
 
-  t.deepEqual(values, [3, 11]);
+  assert.deepEqual(values, [3, 11]);
   dispose();
 });
 
-test('never create self dependencies', t => {
+test('never create self dependencies', () => {
   const a = box(1);
   const values = [];
 
@@ -66,12 +60,12 @@ test('never create self dependencies', t => {
 
   a.set(66);
 
-  t.deepEqual(values, [1, 66]);
-  t.is(a.get(), 67);
+  assert.deepEqual(values, [1, 66]);
+  assert.equal(a.get(), 67);
   dispose();
 });
 
-test('never create self dependencies, with additional invalidation', t => {
+test('never create self dependencies, with additional invalidation', () => {
   const a = box(1);
   const b = box(50);
 
@@ -79,14 +73,14 @@ test('never create self dependencies, with additional invalidation', t => {
     a.set(a.get() + b.get());
   }, { name: 'set_a' });
 
-  t.is(a.get(), 51);
+  assert.equal(a.get(), 51);
   b.set(9);
-  t.is(a.get(), 60);
+  assert.equal(a.get(), 60);
 
   dispose();
 });
 
-test('detect circular dependencies', QuarxMute(t => {
+test('detect circular dependencies', () => {
   const a = box(1, { name: 'a' });
   const b = box(1, { name: 'b' });
 
@@ -96,14 +90,14 @@ test('detect circular dependencies', QuarxMute(t => {
   const dispose1 = autorun(() => a.set(b.get() + 1), { name: 'set_a', onError });
   const dispose2 = autorun(() => b.set(a.get() + 1), { name: 'set_b', onError });
 
-  t.deepEqual(errors, [
+  assert.deepEqual(errors, [
     '[Quarx ERROR]:cycle detected:set_a:set_b:set_a'
   ]);
   dispose1();
   dispose2();
-}));
+});
 
-test('detect circular dependencies appearing after the first invalidation', QuarxMute(t => {
+test('detect circular dependencies appearing after the first invalidation', () => {
   const latch = box(false, { name: 'latch' });
   const a = box(1, { name: 'a' });
   const b = box(1, { name: 'b' });
@@ -116,31 +110,31 @@ test('detect circular dependencies appearing after the first invalidation', Quar
   const dispose2 = autorun(() => latch.get() && b.set(c.get() + 1), { name: 'set_b', onError });
   const dispose3 = autorun(() => latch.get() && c.set(a.get() + 1), { name: 'set_c', onError });
 
-  t.is(errors.length, 0);
+  assert.equal(errors.length, 0);
   latch.set(true);
 
-  t.deepEqual(errors, [
+  assert.deepEqual(errors, [
     '[Quarx ERROR]:invalidate hydrated:set_a',
     '[Quarx ERROR]:invalidate hydrated:set_b'
   ]);
   dispose1();
   dispose2();
   dispose3();
-}));
+});
 
-test('first computation run invalidation', t => {
+test('first computation run invalidation', () => {
   const b = box(5);
   const values = [];
 
   const dispose1 = autorun(() => values.push(b.get()));
   const dispose2 = autorun(() => b.set(6));
 
-  t.deepEqual(values, [5, 6]);
+  assert.deepEqual(values, [5, 6]);
   dispose1();
   dispose2();
 });
 
-test('greedy cleanup when disposing an autorun from another', t => {
+test('greedy cleanup when disposing an autorun from another', () => {
   let a = 5;
   const off1 = autorun(() => {
     createAtom(() => () => a = 42).reportObserved();
@@ -148,13 +142,13 @@ test('greedy cleanup when disposing an autorun from another', t => {
 
   const off2 = autorun(() => {
     off1();
-    t.is(a, 42);
+    assert.equal(a, 42);
   });
 
   off2();
 });
 
-test('when a computation disposes itself the unobserved handlers are only called once', t => {
+test('when a computation disposes itself the unobserved handlers are only called once', () => {
   const b = box(false);
   const logs = [];
 
@@ -165,8 +159,8 @@ test('when a computation disposes itself the unobserved handlers are only called
     if (b.get()) off();
   });
 
-  t.is(logs.length, 0);
+  assert.equal(logs.length, 0);
 
   b.set(true);
-  t.deepEqual(logs, ['unobserved']);
+  assert.deepEqual(logs, ['unobserved']);
 });

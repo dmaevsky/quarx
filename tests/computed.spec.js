@@ -1,15 +1,13 @@
-import test from 'ava';
-import { autorun, createAtom, Quarx } from '../src/core.js';
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import snapshot from 'usnap';
+
+snapshot.setup(import.meta.url);
+
+import { autorun, createAtom } from '../src/core.js';
 import { box } from '../src/box.js';
 import { computed } from '../src/computed.js';
-
-const QuarxMute = fn => (...args) => {
-  const original = Quarx.error;
-  Quarx.error = () => {};
-  const result = fn(...args);
-  Quarx.error = original;
-  return result;
-}
 
 const computedLogged = log => (name, computation) => computed(() => {
   log.push(`computing ${name}`);
@@ -44,7 +42,7 @@ test('only recomputing hydrated computed', t => {
   boxB.set(9);
   boxC.set(10);
 
-  t.snapshot(log);
+  snapshot(log, t.name);
   off();
 });
 
@@ -65,11 +63,11 @@ test('discovering a new dependency path, only recalculating what is needed along
   log.push('===');
   A.set(1);
 
-  t.snapshot(log);
+  snapshot(log, t.name);
   off();
 });
 
-test('caches subcomputations', t => {
+test('caches subcomputations', () => {
   const a = box(2, { name: 'boxA' });
   const b = box(3, { name: 'boxB' });
 
@@ -81,17 +79,17 @@ test('caches subcomputations', t => {
 
   autorun(() => sum.get());
 
-  t.true(aRecomputed);
-  t.true(bRecomputed);
-  t.true(sumRecomputed);
+  assert(aRecomputed);
+  assert(bRecomputed);
+  assert(sumRecomputed);
 
   aRecomputed = bRecomputed = sumRecomputed = false;
   a.set(4);
-  t.true(aRecomputed);
-  t.false(bRecomputed);
+  assert(aRecomputed);
+  assert(!bRecomputed);
 });
 
-test('circular deps with computed', QuarxMute(t => {
+test('circular deps with computed', () => {
   const fa = box(() => 5, { name: 'fa '});
   const fb = box(() => a.get() + 6, { name: 'fb'});
 
@@ -102,17 +100,17 @@ test('circular deps with computed', QuarxMute(t => {
 
   const off = autorun(() => values.push(b.get()), { onError: e => errors.push(e.message) });
 
-  t.deepEqual(values, [11]);
-  t.is(errors.length, 0);
+  assert.deepEqual(values, [11]);
+  assert.equal(errors.length, 0);
 
   fa.set(() => b.get());
 
-  t.deepEqual(errors, ['[Quarx ERROR]:cycle detected:a:b:a']);
+  assert.deepEqual(errors, ['[Quarx ERROR]:cycle detected:a:b:a']);
 
   off();
-}));
+});
 
-test('atom is not unobserved if picked up by another computation during the same hydration', t => {
+test('atom is not unobserved if picked up by another computation during the same hydration', () => {
   const logs = [];
 
   const atom1 = createAtom(() => {
@@ -133,7 +131,7 @@ test('atom is not unobserved if picked up by another computation during the same
   latch.set(false);
   off();
 
-  t.deepEqual(logs, [
+  assert.deepEqual(logs, [
     '1 observed',
     '2 observed, no dispose callback',
     [[true, true], false],
@@ -142,7 +140,7 @@ test('atom is not unobserved if picked up by another computation during the same
   ]);
 });
 
-test('another circular dependency detection with computed', QuarxMute(t => {
+test('another circular dependency detection with computed', () => {
   const latch = box(false, { name: 'latch'});
   const c1 = computed(() => latch.get() && c2.get(), { name: 'c1' });
   const c2 = computed(() => latch.get() && c3.get(), { name: 'c2' });
@@ -153,8 +151,8 @@ test('another circular dependency detection with computed', QuarxMute(t => {
   const off = autorun(() => c1.get(), { onError: e => err = e });
   latch.set(true);
 
-  t.true(err instanceof Error);
-  t.is(err.message, '[Quarx ERROR]:cycle detected:c1:c2:c3:c1');
+  assert(err instanceof Error);
+  assert.equal(err.message, '[Quarx ERROR]:cycle detected:c1:c2:c3:c1');
 
   off();
-}));
+});

@@ -1,8 +1,10 @@
-import test from 'ava';
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
 import { autorun } from '../src/core.js';
 import { observableMap } from '../src/map.js';
 
-test('observableMap', t => {
+test('observableMap', () => {
   const map = observableMap(new Map([['foo', 5]]));
   let updates = {};
 
@@ -16,7 +18,7 @@ test('observableMap', t => {
     autorun(() => updates['size']     = map.size),
   ];
 
-  t.is(Object.keys(updates).length, 7);
+  assert.equal(Object.keys(updates).length, 7);
 
   const actions = [
     [() => map.set('bar', 6), ['get(bar)', 'keys', 'values', 'entries', 'size']],
@@ -28,7 +30,7 @@ test('observableMap', t => {
   for (let [action, result] of actions) {
     updates = {};
     action();
-    t.deepEqual(Object.keys(updates).sort(), result.sort());
+    assert.deepEqual(Object.keys(updates).sort(), result.sort());
   }
 
   subscriptions.forEach(off => off());
